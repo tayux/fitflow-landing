@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FitFlow — Mais Forte. Mais Leve. Conectado.</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: #ea580c;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── HERO SECTION ─────────────────────────────── */
+    .hero {
+      position: relative;
+      width: 100%;
+      height: 1024px;
+      overflow: hidden;
+    }
+
+    /* Background image */
+    .hero-bg {
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+    }
+    .hero-bg img {
+      position: absolute;
+      width: 100%;
+      height: 125%;
+      top: -12.5%;
+      left: 0;
+      object-fit: cover;
+    }
+    /* Orange gradient overlay */
+    .hero-overlay {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(90deg, rgba(234,88,12,0.92) 0%, rgba(234,88,12,0.45) 100%);
+    }
+
+    /* ── HEADER ───────────────────────────────────── */
+    .header {
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 32px 64px;
+    }
+    .logo {
+      font-size: 24px;
+      font-weight: 800;
+      color: #fff;
+      letter-spacing: -0.6px;
+      text-decoration: none;
+    }
+    .nav {
+      display: flex;
+      gap: 40px;
+      align-items: center;
+    }
+    .nav a {
+      font-size: 10px;
+      font-weight: 700;
+      color: #fff;
+      text-decoration: none;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      transition: opacity .2s;
+    }
+    .nav a:hover { opacity: 0.7; }
+
+    /* ── HERO CONTENT ─────────────────────────────── */
+    .hero-content {
+      position: absolute;
+      top: 96px; left: 0; right: 0; bottom: 0;
+      z-index: 5;
+      display: flex;
+      align-items: center;
+      padding: 0 64px;
+      padding-bottom: 0;
+      padding-top: 3.88px;
+    }
+
+    /* Left */
+    .hero-left {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 48px 0;
+      max-width: 672px;
+    }
+    .hero-headline {
+      font-size: 96px;
+      font-weight: 800;
+      color: #fff;
+      line-height: 1;
+      letter-spacing: -2.4px;
+    }
+    .hero-sub {
+      margin-top: 32px;
+      font-size: 20px;
+      font-weight: 500;
+      color: rgba(255,255,255,0.9);
+      line-height: 1.4;
+      max-width: 448px;
+    }
+
+    /* CTA Button */
+    .cta-wrap {
+      margin-top: 48px;
+    }
+    .cta-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      background: #fff;
+      color: #000;
+      font-size: 16px;
+      font-weight: 700;
+      padding: 16px 32px;
+      border-radius: 9999px;
+      border: none;
+      cursor: pointer;
+      text-decoration: none;
+      transition: transform .2s, box-shadow .2s;
+    }
+    .cta-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    }
+    .cta-btn svg { width: 20px; height: 20px; }
+
+    /* Testimonial */
+    .testimonial {
+      margin-top: 32px;
+      max-width: 512px;
+    }
+    .testimonial-author {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .testimonial-avatar {
+      width: 48px;
+      height: 48px;
+      border-radius: 9999px;
+      border: 2px solid rgba(255,255,255,0.2);
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+    .testimonial-avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .testimonial-name {
+      font-size: 14px;
+      font-weight: 700;
+      color: #fff;
+    }
+    .stars {
+      display: flex;
+      gap: 2px;
+      margin-top: 4px;
+    }
+    .stars span {
+      color: #facc15;
+      font-size: 12px;
+    }
+    .testimonial-text {
+      margin-top: 14px;
+      font-size: 14px;
+      font-style: italic;
+      font-weight: 400;
+      color: rgba(255,255,255,0.8);
+      line-height: 1.625;
+    }
+
+    /* Right */
+    .hero-right {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      position: relative;
+    }
+
+    /* Video card */
+    .video-card-wrap {
+      position: relative;
+    }
+    .video-label {
+      position: absolute;
+      top: -40px;
+      left: 8px; right: 8px;
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+    }
+    .video-label span {
+      font-size: 12px;
+      font-weight: 700;
+      color: #fff;
+      letter-spacing: 0.6px;
+      text-transform: uppercase;
+      opacity: 0.9;
+    }
+    .video-label svg { width: 16px; height: 16px; opacity: 0.9; }
+
+    .video-card {
+      width: 320px;
+      height: 192px;
+      border-radius: 16px;
+      border: 1px solid rgba(255,255,255,0.2);
+      background: rgba(255,255,255,0.1);
+      backdrop-filter: blur(4px);
+      box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
+      overflow: hidden;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .video-card-img {
+      position: absolute;
+      inset: 0;
+      opacity: 0.8;
+    }
+    .video-card-img img {
+      width: 100%;
+      height: 221.43%;
+      top: -60.71%;
+      position: absolute;
+      left: 0;
+      object-fit: cover;
+    }
+    .play-btn {
+      position: relative;
+      z-index: 2;
+      width: 56px;
+      height: 56px;
+      background: #fff;
+      border-radius: 9999px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -4px rgba(0,0,0,0.1);
+      cursor: pointer;
+      transition: transform .2s;
+    }
+    .play-btn:hover { transform: scale(1.08); }
+    .play-btn svg { width: 32px; height: 32px; }
+
+    /* Arrow decoration */
+    .arrow-decoration {
+      position: absolute;
+      top: 50%;
+      left: -80px;
+      transform: translateY(-50%);
+      width: 96px;
+      height: 96px;
+      opacity: 0.6;
+      rotate: 12deg;
+    }
+    .arrow-decoration img { width: 100%; height: 100%; object-fit: contain; }
+
+    /* ── FOOTER TRUST BAR ─────────────────────────── */
+    .footer-trust {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      z-index: 5;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 48px 64px;
+    }
+    .trust-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .trust-label {
+      font-size: 14px;
+      font-weight: 600;
+      color: #fff;
+    }
+    .trust-logo {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .trust-logo svg { width: 16px; height: 16px; }
+    .trust-logo span {
+      font-size: 14px;
+      font-weight: 600;
+      color: #fff;
+      letter-spacing: -0.35px;
+    }
+    .sparkle {
+      position: absolute;
+      bottom: 48px;
+      right: 48px;
+      width: 24px;
+      height: 24px;
+      opacity: 0.5;
+    }
+    .sparkle svg { width: 100%; height: 100%; }
+
+    /* Grain overlay */
+    .grain {
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+      pointer-events: none;
+      opacity: 0.03;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+      background-size: 200px;
+    }
+
+    /* ── HAMBURGER MENU ───────────────────────────── */
+    .hamburger {
+      display: none;
+      flex-direction: column;
+      gap: 5px;
+      cursor: pointer;
+      z-index: 20;
+      background: none;
+      border: none;
+      padding: 4px;
+    }
+    .hamburger span {
+      display: block;
+      width: 24px;
+      height: 2px;
+      background: #fff;
+      border-radius: 2px;
+      transition: all .3s;
+    }
+    .nav-mobile {
+      display: none;
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      background: rgba(180,50,0,0.97);
+      backdrop-filter: blur(8px);
+      z-index: 15;
+      flex-direction: column;
+      align-items: center;
+      gap: 32px;
+      padding: 96px 32px 48px;
+    }
+    .nav-mobile.open { display: flex; }
+    .nav-mobile a {
+      font-size: 14px;
+      font-weight: 700;
+      color: #fff;
+      text-decoration: none;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+    .nav-mobile-close {
+      position: absolute;
+      top: 28px; right: 24px;
+      background: none;
+      border: none;
+      color: #fff;
+      font-size: 28px;
+      cursor: pointer;
+      line-height: 1;
+    }
+
+    /* ── TABLET (≤ 1024px) ────────────────────────── */
+    @media (max-width: 1024px) {
+      .hero {
+        height: auto;
+        min-height: 100vh;
+        padding-bottom: 120px;
+      }
+      .header {
+        padding: 24px 32px;
+      }
+      .nav { gap: 24px; }
+
+      .hero-content {
+        top: 88px;
+        padding: 0 32px;
+        flex-direction: column;
+        align-items: flex-start;
+        justify-content: flex-start;
+        gap: 48px;
+      }
+      .hero-left {
+        max-width: 100%;
+        padding: 40px 0 0;
+      }
+      .hero-headline {
+        font-size: 64px;
+        letter-spacing: -1.5px;
+      }
+      .hero-sub {
+        font-size: 18px;
+        max-width: 100%;
+      }
+      .hero-right {
+        width: 100%;
+        justify-content: flex-start;
+        padding-bottom: 48px;
+      }
+      .arrow-decoration { display: none; }
+
+      .footer-trust {
+        padding: 32px;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 16px;
+      }
+      .sparkle { display: none; }
+    }
+
+    /* ── MOBILE (≤ 640px) ─────────────────────────── */
+    @media (max-width: 640px) {
+      .hero {
+        height: auto;
+        min-height: 100dvh;
+        padding-bottom: 100px;
+      }
+      /* Header */
+      .header {
+        padding: 20px 24px;
+      }
+      .nav { display: none; }
+      .hamburger { display: flex; }
+
+      /* Hero content */
+      .hero-content {
+        top: 72px;
+        padding: 0 24px;
+        gap: 36px;
+      }
+      .hero-left {
+        padding: 32px 0 0;
+      }
+      .hero-headline {
+        font-size: 48px;
+        letter-spacing: -1px;
+        line-height: 1.05;
+      }
+      .hero-sub {
+        font-size: 16px;
+        margin-top: 20px;
+      }
+      .cta-wrap { margin-top: 28px; }
+      .cta-btn {
+        font-size: 15px;
+        padding: 14px 24px;
+        width: 100%;
+        justify-content: center;
+      }
+      .testimonial { margin-top: 24px; }
+      .testimonial-text { font-size: 13px; }
+
+      /* Video card — smaller on mobile */
+      .hero-right {
+        width: 100%;
+        justify-content: center;
+        padding-bottom: 0;
+      }
+      .video-card {
+        width: 100%;
+        max-width: 320px;
+        height: 180px;
+      }
+      .video-label { display: none; }
+
+      /* Footer trust */
+      .footer-trust {
+        padding: 24px;
+        gap: 12px;
+      }
+      .trust-item:last-of-type { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<section class="hero">
+
+  <!-- Background -->
+  <div class="hero-bg">
+    <img src="https://www.figma.com/api/mcp/asset/7a8c1c4a-09e6-496b-9461-d456695ba0c0" alt="" />
+  </div>
+  <div class="hero-overlay"></div>
+  <div class="grain"></div>
+
+  <!-- Header -->
+  <header class="header">
+    <a href="#" class="logo">FitFlow</a>
+    <nav class="nav">
+      <a href="#">SOBRE NÓS</a>
+      <a href="#">PROGRAMAS</a>
+      <a href="#">COMO FUNCIONA</a>
+      <a href="#">VIDEO BLOG</a>
+    </nav>
+    <!-- Hamburger (mobile only) -->
+    <button class="hamburger" onclick="document.getElementById('mobileNav').classList.toggle('open')" aria-label="Menu">
+      <span></span><span></span><span></span>
+    </button>
+  </header>
+
+  <!-- Mobile Nav Overlay -->
+  <nav class="nav-mobile" id="mobileNav">
+    <button class="nav-mobile-close" onclick="document.getElementById('mobileNav').classList.remove('open')">✕</button>
+    <a href="#" onclick="document.getElementById('mobileNav').classList.remove('open')">SOBRE NÓS</a>
+    <a href="#" onclick="document.getElementById('mobileNav').classList.remove('open')">PROGRAMAS</a>
+    <a href="#" onclick="document.getElementById('mobileNav').classList.remove('open')">COMO FUNCIONA</a>
+    <a href="#" onclick="document.getElementById('mobileNav').classList.remove('open')">VIDEO BLOG</a>
+  </nav>
+
+  <!-- Hero Content -->
+  <div class="hero-content">
+
+    <!-- Left -->
+    <div class="hero-left">
+      <h1 class="hero-headline">
+        Mais Forte.<br />
+        Mais Leve.<br />
+        Conectado.
+      </h1>
+
+      <p class="hero-sub">
+        Desperte seu potencial com programas de
+        bem-estar holístico e movimento consciente.
+        Explore novos caminhos — a qualquer hora,
+        em qualquer lugar.
+      </p>
+
+      <div class="cta-wrap">
+        <a href="https://www.linkedin.com/in/taynara-menezes/" target="_blank" rel="noopener noreferrer" class="cta-btn">
+          Começar Minha Jornada
+          <!-- Arrow right icon -->
+          <svg viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M4.167 10h11.666M10.833 5l5 5-5 5" stroke="#000" stroke-width="1.67" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </a>
+      </div>
+
+      <!-- Testimonial -->
+      <div class="testimonial">
+        <div class="testimonial-author">
+          <div class="testimonial-avatar">
+            <img src="https://www.figma.com/api/mcp/asset/95412965-6dad-4b20-897b-38e45a1f1a65" alt="Samantha M." />
+          </div>
+          <div>
+            <div class="testimonial-name">Samantha M.</div>
+            <div class="stars">
+              <span>★</span><span>★</span><span>★</span><span>★</span><span>★</span>
+            </div>
+          </div>
+        </div>
+        <p class="testimonial-text">
+          "O FitFlow mudou completamente minha jornada fitness! O coaching
+          personalizado e os programas fáceis de seguir me ajudaram a alcançar
+          resultados reais. Recomendo muito!"
+        </p>
+      </div>
+    </div>
+
+    <!-- Right -->
+    <div class="hero-right">
+      <div class="video-card-wrap">
+        <!-- Label above card -->
+        <div class="video-label">
+          <span>STRONGER EVERY DAY: E02-S11</span>
+          <!-- Expand icon -->
+          <svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M10 2h4v4M6 14H2v-4M14 10v4h-4M2 6V2h4" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+
+        <!-- Video Card -->
+        <div class="video-card">
+          <div class="video-card-img">
+            <img src="https://www.figma.com/api/mcp/asset/95412965-6dad-4b20-897b-38e45a1f1a65" alt="Video preview" />
+          </div>
+          <div class="play-btn">
+            <!-- Play icon -->
+            <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M11 8l14 8-14 8V8z" fill="#000"/>
+            </svg>
+          </div>
+        </div>
+
+        <!-- Arrow decoration -->
+        <div class="arrow-decoration">
+          <img src="https://www.figma.com/api/mcp/asset/a31014b9-6e98-493e-84f8-e8bf8df17bda" alt="" />
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Footer Trust Bar -->
+  <div class="footer-trust">
+    <div class="trust-item">
+      <span class="trust-label">Excelente 4.9 de 5</span>
+      <div class="trust-logo">
+        <!-- Trustpilot star -->
+        <svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+          <rect width="16" height="16" rx="2" fill="#00B67A"/>
+          <path d="M8 2l1.545 4.756H14.5L10.478 9.49l1.545 4.757L8 11.51l-4.023 2.735L5.522 9.49 1.5 6.756h4.955L8 2z" fill="#fff"/>
+        </svg>
+        <span>Trustpilot</span>
+      </div>
+    </div>
+
+    <div class="trust-item">
+      <span class="trust-label">Excelente 4.9 de 5</span>
+      <div class="trust-logo">
+        <svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+          <rect width="16" height="16" rx="2" fill="#00B67A"/>
+          <path d="M8 2l1.545 4.756H14.5L10.478 9.49l1.545 4.757L8 11.51l-4.023 2.735L5.522 9.49 1.5 6.756h4.955L8 2z" fill="#fff"/>
+        </svg>
+        <span>Trustpilot</span>
+      </div>
+    </div>
+
+    <!-- Sparkle -->
+    <div class="sparkle">
+      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M12 2v4M12 18v4M2 12h4M18 12h4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+    </div>
+  </div>
+
+</section>
+
+</body>
+</html>
