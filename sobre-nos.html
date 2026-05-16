@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FitFlow — Sobre Nós</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    /* ── TOKENS ───────────────────────────────────── */
+    :root {
+      --brand: #ea580c;
+      --brand-dark: #c2410c;
+      --bg: #ffffff;
+      --surface: #f9fafb;
+      --surface2: #f3f4f6;
+      --text: #111827;
+      --text-muted: #6b7280;
+      --border: rgba(0,0,0,0.08);
+    }
+    [data-theme="dark"] {
+      --bg: #0f0f0f;
+      --surface: #1a1a1a;
+      --surface2: #222;
+      --text: #f3f4f6;
+      --text-muted: #9ca3af;
+      --border: rgba(255,255,255,0.08);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+      transition: background .3s, color .3s;
+    }
+
+    /* ── DARK MODE TOGGLE ─────────────────────────── */
+    .theme-toggle {
+      position: fixed;
+      bottom: 24px; right: 24px;
+      z-index: 999;
+      width: 48px; height: 48px;
+      border-radius: 50%;
+      background: var(--brand);
+      border: none;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 4px 20px rgba(234,88,12,0.4);
+      font-size: 20px;
+      transition: transform .2s;
+    }
+    .theme-toggle:hover { transform: scale(1.1); }
+    .icon-sun { display: none; }
+    .icon-moon { display: block; }
+    [data-theme="dark"] .icon-sun { display: block; }
+    [data-theme="dark"] .icon-moon { display: none; }
+
+    /* ── HEADER ───────────────────────────────────── */
+    .header {
+      position: sticky;
+      top: 0; left: 0; right: 0;
+      z-index: 50;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 20px 64px;
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
+      transition: background .3s, border-color .3s;
+      backdrop-filter: blur(10px);
+    }
+    .logo {
+      font-size: 22px;
+      font-weight: 800;
+      color: var(--brand);
+      letter-spacing: -0.5px;
+      text-decoration: none;
+    }
+    .nav { display: flex; gap: 36px; align-items: center; }
+    .nav a {
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-decoration: none;
+      letter-spacing: 1.2px;
+      text-transform: uppercase;
+      transition: color .2s;
+    }
+    .nav a:hover, .nav a.active { color: var(--brand); }
+    .nav-cta {
+      background: var(--brand);
+      color: #fff !important;
+      padding: 10px 22px;
+      border-radius: 9999px;
+      font-size: 11px !important;
+      transition: background .2s, transform .2s !important;
+    }
+    .nav-cta:hover { background: var(--brand-dark) !important; transform: translateY(-1px); }
+
+    /* Hamburger */
+    .hamburger {
+      display: none; flex-direction: column; gap: 5px;
+      cursor: pointer; background: none; border: none; padding: 4px;
+    }
+    .hamburger span {
+      display: block; width: 24px; height: 2px;
+      background: var(--text); border-radius: 2px; transition: all .3s;
+    }
+    .hamburger.active span:nth-child(1) { transform: rotate(45deg) translate(5px,5px); }
+    .hamburger.active span:nth-child(2) { opacity: 0; }
+    .hamburger.active span:nth-child(3) { transform: rotate(-45deg) translate(5px,-5px); }
+    .nav-mobile {
+      display: none; position: fixed; inset: 0;
+      background: var(--bg); z-index: 40;
+      flex-direction: column; align-items: center; justify-content: center; gap: 32px;
+    }
+    .nav-mobile.open { display: flex; }
+    .nav-mobile a {
+      font-size: 20px; font-weight: 700; color: var(--text);
+      text-decoration: none; letter-spacing: 1px; text-transform: uppercase;
+    }
+    .nav-mobile-close {
+      position: absolute; top: 24px; right: 24px;
+      background: none; border: none; font-size: 28px; cursor: pointer; color: var(--text);
+    }
+
+    /* ── HERO SOBRE NÓS ───────────────────────────── */
+    .about-hero {
+      position: relative;
+      padding: 100px 64px 80px;
+      overflow: hidden;
+    }
+    .about-hero::before {
+      content: '';
+      position: absolute;
+      top: -200px; right: -200px;
+      width: 600px; height: 600px;
+      background: radial-gradient(circle, rgba(234,88,12,0.12) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .about-hero-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(234,88,12,0.1);
+      color: var(--brand);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      padding: 6px 14px;
+      border-radius: 9999px;
+      margin-bottom: 24px;
+    }
+    .about-hero-tag span { width: 6px; height: 6px; background: var(--brand); border-radius: 50%; }
+    .about-hero h1 {
+      font-size: clamp(40px, 6vw, 72px);
+      font-weight: 800;
+      color: var(--text);
+      letter-spacing: -2px;
+      line-height: 1.05;
+      max-width: 760px;
+      margin-bottom: 28px;
+    }
+    .about-hero h1 em {
+      font-style: normal;
+      color: var(--brand);
+    }
+    .about-hero p {
+      font-size: clamp(16px, 2vw, 20px);
+      color: var(--text-muted);
+      line-height: 1.65;
+      max-width: 580px;
+    }
+
+    /* ── STATS ────────────────────────────────────── */
+    .stats-section {
+      padding: 0 64px 80px;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 24px;
+    }
+    .stat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 32px 28px;
+      transition: transform .2s, box-shadow .2s, background .3s;
+      cursor: default;
+    }
+    .stat-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 12px 40px rgba(234,88,12,0.1);
+    }
+    .stat-number {
+      font-size: 48px;
+      font-weight: 800;
+      color: var(--brand);
+      letter-spacing: -2px;
+      line-height: 1;
+      margin-bottom: 8px;
+    }
+    .stat-label {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text-muted);
+      line-height: 1.4;
+    }
+
+    /* ── MISSION ──────────────────────────────────── */
+    .mission-section {
+      padding: 80px 64px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 64px;
+      align-items: center;
+      background: var(--surface);
+      transition: background .3s;
+    }
+    .section-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(234,88,12,0.1);
+      color: var(--brand);
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      padding: 5px 12px;
+      border-radius: 9999px;
+      margin-bottom: 20px;
+    }
+    .mission-section h2 {
+      font-size: clamp(28px, 4vw, 44px);
+      font-weight: 800;
+      color: var(--text);
+      letter-spacing: -1.5px;
+      line-height: 1.1;
+      margin-bottom: 20px;
+    }
+    .mission-section p {
+      font-size: 17px;
+      color: var(--text-muted);
+      line-height: 1.7;
+      margin-bottom: 16px;
+    }
+    .mission-visual {
+      position: relative;
+    }
+    .mission-img-wrap {
+      border-radius: 24px;
+      overflow: hidden;
+      aspect-ratio: 4/3;
+      background: linear-gradient(135deg, var(--brand) 0%, #f97316 50%, #fdba74 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+    .mission-img-wrap::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+      background-size: 200px;
+      opacity: 0.07;
+    }
+    .mission-icon {
+      font-size: 80px;
+      filter: drop-shadow(0 8px 20px rgba(0,0,0,0.15));
+    }
+    .mission-badge {
+      position: absolute;
+      bottom: -20px; right: -20px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 16px 20px;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.1);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      transition: background .3s, border-color .3s;
+    }
+    .mission-badge-icon { font-size: 28px; }
+    .mission-badge-text strong { display: block; font-size: 15px; font-weight: 700; color: var(--text); }
+    .mission-badge-text span { font-size: 12px; color: var(--text-muted); }
+
+    /* ── VALUES ───────────────────────────────────── */
+    .values-section {
+      padding: 80px 64px;
+    }
+    .values-section > .section-header {
+      text-align: center;
+      margin-bottom: 56px;
+    }
+    .values-section h2 {
+      font-size: clamp(28px, 4vw, 44px);
+      font-weight: 800;
+      color: var(--text);
+      letter-spacing: -1.5px;
+      margin-bottom: 16px;
+    }
+    .values-section > .section-header p {
+      font-size: 17px;
+      color: var(--text-muted);
+      max-width: 520px;
+      margin: 0 auto;
+      line-height: 1.6;
+    }
+    .values-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+    }
+    .value-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 36px 32px;
+      transition: transform .25s, box-shadow .25s, background .3s;
+    }
+    .value-card:hover {
+      transform: translateY(-6px);
+      box-shadow: 0 16px 48px rgba(234,88,12,0.12);
+      border-color: rgba(234,88,12,0.2);
+    }
+    .value-icon {
+      width: 52px; height: 52px;
+      background: rgba(234,88,12,0.1);
+      border-radius: 14px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 24px;
+      margin-bottom: 20px;
+    }
+    .value-card h3 {
+      font-size: 18px; font-weight: 700; color: var(--text);
+      margin-bottom: 10px; letter-spacing: -0.3px;
+    }
+    .value-card p {
+      font-size: 15px; color: var(--text-muted); line-height: 1.6;
+    }
+
+    /* ── TEAM ─────────────────────────────────────── */
+    .team-section {
+      padding: 80px 64px;
+      background: var(--surface);
+      transition: background .3s;
+    }
+    .team-section > .section-header {
+      text-align: center;
+      margin-bottom: 56px;
+    }
+    .team-section h2 {
+      font-size: clamp(28px, 4vw, 44px);
+      font-weight: 800; color: var(--text);
+      letter-spacing: -1.5px; margin-bottom: 12px;
+    }
+    .team-section > .section-header p {
+      font-size: 17px; color: var(--text-muted);
+      max-width: 480px; margin: 0 auto; line-height: 1.6;
+    }
+    .team-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 24px;
+    }
+    .team-card {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 28px 24px;
+      text-align: center;
+      transition: transform .25s, box-shadow .25s, background .3s;
+    }
+    .team-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 12px 40px rgba(0,0,0,0.08);
+    }
+    .team-avatar {
+      width: 80px; height: 80px;
+      border-radius: 50%;
+      margin: 0 auto 16px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 36px;
+      background: linear-gradient(135deg, var(--brand) 0%, #f97316 100%);
+      color: #fff;
+      font-weight: 800;
+    }
+    .team-card h3 { font-size: 16px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
+    .team-card .role { font-size: 12px; color: var(--brand); font-weight: 600; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 10px; }
+    .team-card p { font-size: 13px; color: var(--text-muted); line-height: 1.5; }
+
+    /* ── CTA BANNER ───────────────────────────────── */
+    .cta-banner {
+      padding: 80px 64px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .cta-banner::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, var(--brand) 0%, #f97316 100%);
+    }
+    .cta-banner-content { position: relative; z-index: 1; }
+    .cta-banner h2 {
+      font-size: clamp(28px, 5vw, 52px);
+      font-weight: 800;
+      color: #fff;
+      letter-spacing: -1.5px;
+      margin-bottom: 16px;
+    }
+    .cta-banner p {
+      font-size: 18px;
+      color: rgba(255,255,255,0.85);
+      max-width: 480px;
+      margin: 0 auto 36px;
+      line-height: 1.6;
+    }
+    .cta-banner-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      background: #fff;
+      color: var(--brand);
+      font-size: 15px;
+      font-weight: 700;
+      padding: 16px 36px;
+      border-radius: 9999px;
+      text-decoration: none;
+      transition: transform .2s, box-shadow .2s;
+    }
+    .cta-banner-btn:hover { transform: translateY(-3px); box-shadow: 0 16px 40px rgba(0,0,0,0.2); }
+
+    /* ── FOOTER ───────────────────────────────────── */
+    footer {
+      padding: 32px 64px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      transition: border-color .3s;
+    }
+    footer .logo { font-size: 18px; }
+    footer p { font-size: 13px; color: var(--text-muted); }
+
+    /* ── RESPONSIVE ───────────────────────────────── */
+    @media (max-width: 1024px) {
+      .about-hero { padding: 80px 40px 60px; }
+      .stats-section { padding: 0 40px 60px; grid-template-columns: repeat(2,1fr); }
+      .mission-section { padding: 60px 40px; grid-template-columns: 1fr; }
+      .mission-visual { display: none; }
+      .values-section { padding: 60px 40px; }
+      .values-grid { grid-template-columns: repeat(2,1fr); }
+      .team-section { padding: 60px 40px; }
+      .team-grid { grid-template-columns: repeat(2,1fr); }
+      .cta-banner { padding: 60px 40px; }
+      footer { padding: 24px 40px; }
+      .header { padding: 20px 40px; }
+    }
+
+    @media (max-width: 640px) {
+      .header { padding: 16px 20px; }
+      .nav { display: none; }
+      .hamburger { display: flex; }
+      .about-hero { padding: 56px 20px 40px; }
+      .stats-section { padding: 0 20px 48px; grid-template-columns: repeat(2,1fr); gap: 16px; }
+      .stat-number { font-size: 36px; }
+      .mission-section { padding: 48px 20px; gap: 32px; }
+      .values-section { padding: 48px 20px; }
+      .values-grid { grid-template-columns: 1fr; }
+      .team-section { padding: 48px 20px; }
+      .team-grid { grid-template-columns: repeat(2,1fr); }
+      .cta-banner { padding: 56px 20px; }
+      footer { padding: 20px; flex-direction: column; gap: 8px; text-align: center; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Dark Mode Toggle -->
+<button class="theme-toggle" onclick="toggleTheme()" aria-label="Alternar tema">
+  <span class="icon-moon">🌙</span>
+  <span class="icon-sun">☀️</span>
+</button>
+
+<!-- Mobile Nav -->
+<nav class="nav-mobile" id="mobileNav">
+  <button class="nav-mobile-close" onclick="closeMobileNav()">✕</button>
+  <a href="index.html" onclick="closeMobileNav()">HOME</a>
+  <a href="#" onclick="closeMobileNav()">PROGRAMAS</a>
+  <a href="#" onclick="closeMobileNav()">COMO FUNCIONA</a>
+  <a href="#" onclick="closeMobileNav()">VIDEO BLOG</a>
+</nav>
+
+<!-- Header -->
+<header class="header">
+  <a href="index.html" class="logo">FitFlow</a>
+  <nav class="nav">
+    <a href="index.html">HOME</a>
+    <a href="sobre-nos.html" class="active">SOBRE NÓS</a>
+    <a href="#">PROGRAMAS</a>
+    <a href="#">COMO FUNCIONA</a>
+    <a href="https://www.linkedin.com/in/taynara-menezes/" target="_blank" class="nav-cta">COMEÇAR AGORA →</a>
+  </nav>
+  <button class="hamburger" id="hamburger" onclick="toggleMobileNav()" aria-label="Menu">
+    <span></span><span></span><span></span>
+  </button>
+</header>
+
+<!-- Hero -->
+<section class="about-hero">
+  <div class="about-hero-tag"><span></span>Nossa história</div>
+  <h1>Nascemos para <em>transformar</em><br/>vidas em movimento.</h1>
+  <p>O FitFlow surgiu da crença de que bem-estar não é um destino, é uma jornada diária. Reunimos tecnologia, ciência e comunidade para criar a experiência fitness mais completa do Brasil.</p>
+</section>
+
+<!-- Stats -->
+<section class="stats-section">
+  <div class="stat-card">
+    <div class="stat-number">200K+</div>
+    <div class="stat-label">Alunos ativos transformando suas vidas</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-number">98%</div>
+    <div class="stat-label">Taxa de satisfação nos nossos programas</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-number">500+</div>
+    <div class="stat-label">Aulas e treinos disponíveis na plataforma</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-number">4.9★</div>
+    <div class="stat-label">Avaliação média no Trustpilot</div>
+  </div>
+</section>
+
+<!-- Mission -->
+<section class="mission-section">
+  <div class="mission-text">
+    <div class="section-tag">Nossa missão</div>
+    <h2>Movimento consciente,<br/>resultados reais.</h2>
+    <p>Acreditamos que toda pessoa merece acesso a orientação de qualidade — não importa onde está, que horas são ou qual é o seu nível de condicionamento.</p>
+    <p>Por isso, criamos programas que se adaptam a você, não o contrário. Com coaches certificados, tecnologia adaptativa e uma comunidade vibrante, o FitFlow é o parceiro que você sempre quis ter.</p>
+  </div>
+  <div class="mission-visual">
+    <div class="mission-img-wrap">
+      <div class="mission-icon">🏃‍♀️</div>
+    </div>
+    <div class="mission-badge">
+      <div class="mission-badge-icon">🏆</div>
+      <div class="mission-badge-text">
+        <strong>Top 1 do Brasil</strong>
+        <span>Apps de fitness 2025</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Values -->
+<section class="values-section">
+  <div class="section-header">
+    <div class="section-tag">O que nos move</div>
+    <h2>Nossos valores</h2>
+    <p>Cada decisão que tomamos começa com estes princípios fundamentais.</p>
+  </div>
+  <div class="values-grid">
+    <div class="value-card">
+      <div class="value-icon">💪</div>
+      <h3>Consistência acima de tudo</h3>
+      <p>Resultados reais vêm de pequenas ações repetidas todo dia. Nossos programas foram feitos para você se manter em movimento mesmo nos dias difíceis.</p>
+    </div>
+    <div class="value-card">
+      <div class="value-icon">🧠</div>
+      <h3>Ciência como base</h3>
+      <p>Cada treino, cada dica nutricional, cada recomendação de descanso é respaldada por evidências científicas e validada por especialistas.</p>
+    </div>
+    <div class="value-card">
+      <div class="value-icon">🌍</div>
+      <h3>Acesso universal</h3>
+      <p>Bem-estar de qualidade não pode ser privilégio de poucos. Trabalhamos para que qualquer pessoa, em qualquer lugar, possa evoluir.</p>
+    </div>
+    <div class="value-card">
+      <div class="value-icon">🤝</div>
+      <h3>Comunidade forte</h3>
+      <p>Ninguém se transforma sozinho. Nossa comunidade é o coração do FitFlow — um espaço seguro de suporte, celebração e evolução coletiva.</p>
+    </div>
+    <div class="value-card">
+      <div class="value-icon">⚡</div>
+      <h3>Inovação constante</h3>
+      <p>Estamos sempre aprimorando a plataforma com IA, análise de desempenho e novas modalidades para que sua experiência seja sempre a melhor.</p>
+    </div>
+    <div class="value-card">
+      <div class="value-icon">❤️</div>
+      <h3>Cuidado genuíno</h3>
+      <p>Cada membro é único. Personalizamos jornadas porque sabemos que seu objetivo, seu tempo e seu corpo merecem atenção individual.</p>
+    </div>
+  </div>
+</section>
+
+<!-- Team -->
+<section class="team-section">
+  <div class="section-header">
+    <div class="section-tag">As pessoas por trás do FitFlow</div>
+    <h2>Nosso time</h2>
+    <p>Apaixonados por movimento, ciência e impacto positivo na vida das pessoas.</p>
+  </div>
+  <div class="team-grid">
+    <div class="team-card">
+      <div class="team-avatar">T</div>
+      <h3>Taynara Menezes</h3>
+      <div class="role">CEO & Co-fundadora</div>
+      <p>Designer, estrategista e apaixonada por como a tecnologia pode humanizar o bem-estar.</p>
+    </div>
+    <div class="team-card">
+      <div class="team-avatar">R</div>
+      <h3>Rafael Costa</h3>
+      <div class="role">CTO & Co-fundador</div>
+      <p>Engenheiro de software com 10 anos de experiência em plataformas de saúde digital.</p>
+    </div>
+    <div class="team-card">
+      <div class="team-avatar">S</div>
+      <h3>Samantha Melo</h3>
+      <div class="role">Head de Conteúdo</div>
+      <p>Educadora física, mestre em fisiologia do exercício e criadora dos nossos programas.</p>
+    </div>
+    <div class="team-card">
+      <div class="team-avatar">L</div>
+      <h3>Lucas Andrade</h3>
+      <div class="role">Head de Comunidade</div>
+      <p>Especialista em engajamento e responsável por fazer do FitFlow um lugar de pertencimento.</p>
+    </div>
+  </div>
+</section>
+
+<!-- CTA Banner -->
+<section class="cta-banner">
+  <div class="cta-banner-content">
+    <h2>Pronta para começar<br/>sua jornada?</h2>
+    <p>Junte-se a mais de 200 mil pessoas que já escolheram se mover com propósito.</p>
+    <a href="https://www.linkedin.com/in/taynara-menezes/" target="_blank" rel="noopener noreferrer" class="cta-banner-btn">
+      Começar Agora
+      <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
+        <path d="M4.167 10h11.666M10.833 5l5 5-5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </a>
+  </div>
+</section>
+
+<!-- Footer -->
+<footer>
+  <a href="index.html" class="logo">FitFlow</a>
+  <p>© 2026 FitFlow. Todos os direitos reservados.</p>
+</footer>
+
+<script>
+  const root = document.documentElement;
+  const saved = localStorage.getItem('theme');
+  if (saved) root.setAttribute('data-theme', saved);
+
+  function toggleTheme() {
+    const next = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    root.setAttribute('data-theme', next);
+    localStorage.setItem('theme', next);
+  }
+  function toggleMobileNav() {
+    const nav = document.getElementById('mobileNav');
+    const btn = document.getElementById('hamburger');
+    nav.classList.toggle('open');
+    btn.classList.toggle('active');
+    document.body.style.overflow = nav.classList.contains('open') ? 'hidden' : '';
+  }
+  function closeMobileNav() {
+    document.getElementById('mobileNav').classList.remove('open');
+    document.getElementById('hamburger').classList.remove('active');
+    document.body.style.overflow = '';
+  }
+
+  /* Animate stats on scroll */
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        e.target.style.opacity = '1';
+        e.target.style.transform = 'translateY(0)';
+      }
+    });
+  }, { threshold: 0.15 });
+
+  document.querySelectorAll('.stat-card, .value-card, .team-card').forEach((el, i) => {
+    el.style.opacity = '0';
+    el.style.transform = 'translateY(24px)';
+    el.style.transition = `opacity .5s ${i * 0.07}s, transform .5s ${i * 0.07}s, box-shadow .25s, border-color .25s`;
+    observer.observe(el);
+  });
+</script>
+</body>
+</html>
