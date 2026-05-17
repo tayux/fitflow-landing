@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { T, FONT_DISPLAY, FONT_BODY } from '../theme.js';
 import { useNav } from './NavContext.jsx';
 
@@ -54,31 +55,71 @@ export const EmojiCircle = ({ emoji, size = 44, tint = T.tintLavender, style }) 
     fontSize:size * 0.46, flexShrink:0, ...style }}>{emoji}</div>
 );
 
-export const CheckBubble = ({ done = false, size = 28, color = T.brand, onClick }) => (
-  <div onClick={onClick} style={{ width:size, height:size, borderRadius:'50%', flexShrink:0,
-    border: done ? 'none' : `2px solid ${T.inkFaint}`,
-    background: done ? color : 'transparent',
-    display:'flex', alignItems:'center', justifyContent:'center',
-    cursor: onClick ? 'pointer' : 'default', transition:'all 0.15s' }}>
-    {done && <Icon d={I.check} size={size * 0.55} color="#fff" stroke={3} />}
-  </div>
-);
+export const CheckBubble = ({ done = false, size = 28, color = T.brand, onClick }) => {
+  const [scale, setScale] = useState(1);
+  const handle = () => {
+    if (!onClick) return;
+    setScale(0.8);
+    setTimeout(() => setScale(1.18), 80);
+    setTimeout(() => setScale(1), 220);
+    onClick();
+  };
+  return (
+    <div onClick={handle}
+      style={{ width:size, height:size, borderRadius:'50%', flexShrink:0,
+        border: done ? 'none' : `2px solid ${T.inkFaint}`,
+        background: done ? color : 'transparent',
+        display:'flex', alignItems:'center', justifyContent:'center',
+        cursor: onClick ? 'pointer' : 'default',
+        transform:`scale(${scale})`,
+        transition:'transform 0.18s cubic-bezier(0.34,1.56,0.64,1), background 0.15s, border-color 0.15s',
+        WebkitTapHighlightColor:'transparent' }}>
+      {done && <Icon d={I.check} size={size * 0.55} color="#fff" stroke={3} />}
+    </div>
+  );
+};
 
-export const Card = ({ children, style, onClick, pad = 16, radius = 22 }) => (
-  <div onClick={onClick} style={{ background:T.surface, borderRadius:radius, padding:pad,
-    boxShadow:'0 1px 2px rgba(20,20,30,0.03), 0 8px 24px -12px rgba(20,20,30,0.08)', ...style }}>
-    {children}
-  </div>
-);
+export const Card = ({ children, style, onClick, pad = 16, radius = 22, className }) => {
+  const [pressed, setPressed] = useState(false);
+  const interactive = !!onClick;
+  return (
+    <div onClick={onClick}
+      onPointerDown={() => interactive && setPressed(true)}
+      onPointerUp={() => setPressed(false)}
+      onPointerLeave={() => setPressed(false)}
+      className={className}
+      style={{ background:T.surface, borderRadius:radius, padding:pad,
+        boxShadow:'0 1px 2px rgba(20,20,30,0.03), 0 8px 24px -12px rgba(20,20,30,0.08)',
+        transform: interactive && pressed ? 'scale(0.97)' : 'scale(1)',
+        transition:'transform 0.12s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.12s',
+        WebkitTapHighlightColor:'transparent',
+        ...style }}>
+      {children}
+    </div>
+  );
+};
 
-export const IconBtn = ({ icon, onClick, size = 40, style }) => (
-  <button onClick={onClick} style={{ width:size, height:size, borderRadius:'50%',
-    background:T.surface, border:'none',
-    boxShadow:'0 1px 2px rgba(20,20,30,0.04), 0 4px 12px -6px rgba(20,20,30,0.10)',
-    display:'flex', alignItems:'center', justifyContent:'center', ...style }}>
-    <Icon d={icon} size={18} color={T.ink} stroke={2} />
-  </button>
-);
+export const IconBtn = ({ icon, onClick, size = 40, className, style }) => {
+  const [pressed, setPressed] = useState(false);
+  return (
+    <button onClick={onClick}
+      onPointerDown={() => setPressed(true)}
+      onPointerUp={() => setPressed(false)}
+      onPointerLeave={() => setPressed(false)}
+      className={className}
+      style={{ width:size, height:size, borderRadius:'50%',
+        background:T.surface, border:'none',
+        boxShadow:'0 1px 2px rgba(20,20,30,0.04), 0 4px 12px -6px rgba(20,20,30,0.10)',
+        display:'flex', alignItems:'center', justifyContent:'center',
+        cursor:'pointer',
+        transform: pressed ? 'scale(0.88)' : 'scale(1)',
+        transition:'transform 0.14s cubic-bezier(0.34,1.56,0.64,1)',
+        WebkitTapHighlightColor:'transparent',
+        ...style }}>
+      <Icon d={icon} size={18} color={T.ink} stroke={2} />
+    </button>
+  );
+};
 
 export const Mascot = ({ size = 200 }) => (
   <img src="/leia-nova.png" alt="Leia" draggable={false} style={{
@@ -170,10 +211,12 @@ export const BottomNav = ({ active = 'home' }) => {
         {items.map(it => {
           const isActive = active === it.id;
           return (
-            <div key={it.id} onClick={() => nav(it.id)} style={{ flex:1, padding:'10px 0',
-              borderRadius:99, background: isActive ? T.brandSoft : 'transparent',
-              display:'flex', flexDirection:'column', alignItems:'center', gap:3,
-              cursor:'pointer', transition:'background 0.15s' }}>
+            <div key={it.id} onClick={() => nav(it.id)}
+              className="nav-item"
+              style={{ flex:1, padding:'10px 0', borderRadius:99,
+                background: isActive ? T.brandSoft : 'transparent',
+                display:'flex', flexDirection:'column', alignItems:'center', gap:3,
+                cursor:'pointer', WebkitTapHighlightColor:'transparent' }}>
               <Icon d={it.icon} size={20} color={isActive ? T.brand : T.inkSoft}
                 stroke={isActive ? 2.2 : 1.8} />
               <span style={{ fontSize:10.5, fontWeight:700,
@@ -203,5 +246,5 @@ export const Stripe = ({ w = '100%', h = 100, radius = 14, label }) => (
     background:`repeating-linear-gradient(135deg, ${T.surfaceLo} 0 10px, ${T.bgWash} 10px 20px)`,
     display:'flex', alignItems:'center', justifyContent:'center',
     color:T.inkMute, fontFamily:'ui-monospace, monospace', fontSize:10,
-    letterSpacing:0.8, textTransform:'uppercase' }}>{label}</div>
+    letterSpacing:0.8, textTransform:'uppercase', flexShrink:0 }}>{label}</div>
 );
