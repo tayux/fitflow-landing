@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>MinhasPatas v2 — Lighter system</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,300;0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400;1,6..72,500&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  html, body { margin: 0; padding: 0; height: 100%;
+    font-family: 'Manrope', system-ui, sans-serif;
+    background: #f0eee9;
+  }
+  * { box-sizing: border-box; }
+  button { font-family: inherit; }
+  ::-webkit-scrollbar { display: none; }
+</style>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel" src="design-canvas.jsx"></script>
+<script type="text/babel" src="theme-v2.jsx"></script>
+<script type="text/babel" src="screens-v2-a.jsx"></script>
+<script type="text/babel" src="screens-v2-b.jsx"></script>
+<script type="text/babel" src="screens-v2-c.jsx"></script>
+<script type="text/babel" src="screens-v2-d.jsx"></script>
+
+<script type="text/babel">
+const { DesignCanvas, DCSection, DCArtboard } = window;
+
+function App() {
+  const W = 390, H = 844;
+  return (
+    <DesignCanvas projectTitle="MinhasPatas" projectSubtitle="v2 · sistema mais leve · Newsreader + Manrope · 8 telas">
+
+      <DCSection id="auth" title="Entrada" subtitle="Onboarding e autenticação">
+        <DCArtboard id="s1" label="01 · Onboarding" width={W} height={H}>
+          <div data-screen-label="01 Onboarding">
+            <Phone2><V2Onboarding/></Phone2>
+          </div>
+        </DCArtboard>
+      </DCSection>
+
+      <DCSection id="core" title="Núcleo do app" subtitle="Dashboard, medicamentos e receita inteligente">
+        <DCArtboard id="s2" label="02 · Home" width={W} height={H}>
+          <div data-screen-label="02 Home">
+            <Phone2><V2Home/></Phone2>
+          </div>
+        </DCArtboard>
+        <DCArtboard id="s3" label="03 · Medicamentos" width={W} height={H}>
+          <div data-screen-label="03 Medicamentos">
+            <Phone2><V2Meds/></Phone2>
+          </div>
+        </DCArtboard>
+        <DCArtboard id="s4" label="04 · Receita inteligente" width={W} height={H}>
+          <div data-screen-label="04 Receita IA">
+            <Phone2><V2AIReader/></Phone2>
+          </div>
+        </DCArtboard>
+      </DCSection>
+
+      <DCSection id="routine" title="Rotina & perfil" subtitle="Agenda diária e ficha do pet">
+        <DCArtboard id="s5" label="05 · Hoje" width={W} height={H}>
+          <div data-screen-label="05 Hoje">
+            <Phone2><V2Today/></Phone2>
+          </div>
+        </DCArtboard>
+        <DCArtboard id="s6" label="06 · Perfil da Leia" width={W} height={H}>
+          <div data-screen-label="06 Perfil">
+            <Phone2><V2Pet/></Phone2>
+          </div>
+        </DCArtboard>
+      </DCSection>
+
+      <DCSection id="extras" title="Finanças & notificações" subtitle="Controle de gastos e tela bloqueada">
+        <DCArtboard id="s7" label="07 · Finanças" width={W} height={H}>
+          <div data-screen-label="07 Finanças">
+            <Phone2><V2Finance/></Phone2>
+          </div>
+        </DCArtboard>
+        <DCArtboard id="s8" label="08 · Notificação" width={W} height={H}>
+          <div data-screen-label="08 Lock notif">
+            <Phone2 dark><V2LockNotif/></Phone2>
+          </div>
+        </DCArtboard>
+      </DCSection>
+
+    </DesignCanvas>
+  );
+}
+
+function tryMount() {
+  if (window.V2Onboarding && window.V2Home && window.V2Meds && window.V2AIReader &&
+      window.V2Today && window.V2Pet && window.V2Finance && window.V2LockNotif &&
+      window.DesignCanvas) {
+    ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+  } else {
+    setTimeout(tryMount, 50);
+  }
+}
+tryMount();
+</script>
+</body>
+</html>
