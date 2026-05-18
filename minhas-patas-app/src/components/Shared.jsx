@@ -190,7 +190,6 @@ export const PhoneShell = ({ children, dark = false, bg }) => (
     color: dark ? '#fff' : T.ink, position:'relative' }}>
     <div style={{ position:'absolute', top:11, left:'50%', transform:'translateX(-50%)',
       width:118, height:34, borderRadius:24, background:'#000', zIndex:60 }} />
-    <StatusBar dark={dark} />
     <div style={{ flex:1, overflow:'hidden', position:'relative' }}>{children}</div>
     <HomeBar dark={dark} />
   </div>
