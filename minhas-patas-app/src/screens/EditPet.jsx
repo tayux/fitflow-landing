@@ -36,17 +36,19 @@ export default function EditPet() {
   const fileRef = useRef();
 
   const pet = activePet || {};
-  const initSpecies = pet.species === 'cat' ? 'Gato' : 'Cachorro';
-  const initSex     = pet.sex === 'male' ? 'Macho' : 'Fêmea';
-  const initWeight  = pet.weight_kg ? String(pet.weight_kg) : '';
-  const initBirth   = pet.birth_year ? `01/01/${pet.birth_year}` : '';
-  const initBreed   = (!pet.breed || pet.breed === 'SRD') ? '' : pet.breed;
+  const initSpecies  = pet.species === 'cat' ? 'Gato' : 'Cachorro';
+  const initSex      = pet.sex === 'male' ? 'Macho' : 'Fêmea';
+  const initNeutered = /castrad[oa]\b/i.test(pet.gender || '') && !/não/i.test(pet.gender || '') ? 'Sim' : 'Não';
+  const initWeight   = pet.weight_kg ? String(pet.weight_kg) : '';
+  const initBirth    = pet.birth_year ? `01/01/${pet.birth_year}` : '';
+  const initBreed    = (!pet.breed || pet.breed === 'SRD') ? '' : pet.breed;
 
   const [name, setName]         = useState(pet.name || '');
   const [species, setSpecies]   = useState(initSpecies);
   const [breed, setBreed]       = useState(initBreed);
   const [birthDate, setBirth]   = useState(initBirth);
   const [sex, setSex]           = useState(initSex);
+  const [neutered, setNeutered] = useState(initNeutered);
   const [weight, setWeight]     = useState(initWeight);
   const [photoPreview, setPhoto] = useState(pet.photoUrl || null);
   const [saving, setSaving]     = useState(false);
@@ -73,6 +75,7 @@ export default function EditPet() {
         name: name.trim(),
         species: species === 'Cachorro' ? 'dog' : 'cat',
         sex: sex === 'Fêmea' ? 'female' : 'male',
+        neutered: neutered === 'Sim',
         breed: breed.trim() || null,
         weight_kg: weight ? parseFloat(weight.replace(',', '.')) : null,
         birth_year: birthYear || null,
@@ -172,6 +175,11 @@ export default function EditPet() {
               value={sex === 'Fêmea' ? '♀  Fêmea' : '♂  Macho'}
               onChange={v => setSex(v.includes('Fêmea') ? 'Fêmea' : 'Macho')}
             />
+          </div>
+
+          <div style={{ marginBottom:18 }}>
+            <div style={{ fontSize:13, fontWeight:700, color:T.ink, marginBottom:6 }}>Castrado(a)?</div>
+            <Seg options={['Sim','Não']} value={neutered} onChange={setNeutered} />
           </div>
 
           <div style={{ marginBottom:4 }}>
