@@ -1,0 +1,7 @@
+node_modules/
+dist/
+.env
+.vercel
+
+*storybook.log
+storybook-static
