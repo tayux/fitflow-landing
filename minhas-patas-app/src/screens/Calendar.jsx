@@ -1,8 +1,13 @@
 import { useState } from 'react';
+import { useGoogleLogin } from '@react-oauth/google';
 import { T, FONT_BODY, FONT_DISPLAY } from '../theme.js';
 import { useNav } from '../components/NavContext.jsx';
 import { usePet } from '../components/PetContext.jsx';
 import { Icon, I, Card, EmojiCircle, IconBtn, Eyebrow, Display, BottomNav, PetHeader } from '../components/Shared.jsx';
+import {
+  isCalendarConnected, getCalendarEmail, saveCalendarSession,
+  disconnectCalendar, GOOGLE_CALENDAR_SCOPE,
+} from '../utils/googleCalendar.js';
 
 const WEEK    = ['D','S','T','Q','Q','S','S'];
 const MONTHS  = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho',
@@ -129,6 +134,48 @@ export default function Calendar() {
   const [month, setMonth]       = useState(today.getMonth());
   const [selectedDay, setSelected] = useState(today.getDate());
   const [eventDetail, setEventDetail] = useState(null);
+  const [gcalConnected, setGcalConnected] = useState(isCalendarConnected());
+  const [gcalEmail, setGcalEmail] = useState(getCalendarEmail());
+  const [gcalBusy, setGcalBusy] = useState(false);
+
+  const connectGoogleCalendar = useGoogleLogin({
+    scope: GOOGLE_CALENDAR_SCOPE,
+    onSuccess: async (tokenResponse) => {
+      try {
+        const info = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+          headers: { Authorization: `Bearer ${tokenResponse.access_token}` },
+        }).then(r => r.json());
+        saveCalendarSession({
+          access_token: tokenResponse.access_token,
+          expires_in: tokenResponse.expires_in || 3600,
+          email: info.email,
+        });
+        setGcalConnected(true);
+        setGcalEmail(info.email || '');
+      } catch (e) {
+        console.warn('Falha ao obter email do Google', e);
+        saveCalendarSession({
+          access_token: tokenResponse.access_token,
+          expires_in: tokenResponse.expires_in || 3600,
+        });
+        setGcalConnected(true);
+      } finally {
+        setGcalBusy(false);
+      }
+    },
+    onError: () => setGcalBusy(false),
+  });
+
+  const handleConnectGcal = () => {
+    if (gcalConnected) {
+      disconnectCalendar();
+      setGcalConnected(false);
+      setGcalEmail('');
+      return;
+    }
+    setGcalBusy(true);
+    connectGoogleCalendar();
+  };
 
   const prevMonth = () => {
     if (month === 0) { setMonth(11); setYear(y => y - 1); } else setMonth(m => m - 1);
@@ -275,24 +322,37 @@ export default function Calendar() {
             overflow:'hidden', boxShadow:'0 2px 8px rgba(20,20,30,0.05)' }}>
             <div style={{ padding:'14px 16px', display:'flex', alignItems:'center', gap:12 }}>
               <div style={{ fontSize:20 }}>📅</div>
-              <div style={{ flex:1 }}>
+              <div style={{ flex:1, minWidth:0 }}>
                 <div style={{ fontSize:14, fontWeight:700, color:T.ink }}>Google Calendar</div>
-                <div style={{ fontSize:12, color:T.inkSoft }}>Integração em breve</div>
+                <div style={{ fontSize:12, color:T.inkSoft, overflow:'hidden',
+                  textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                  {gcalConnected
+                    ? (gcalEmail ? `Conectado: ${gcalEmail}` : 'Conectado')
+                    : 'Sincronizar lembretes com o Google'}
+                </div>
               </div>
-              <div style={{ padding:'4px 10px', borderRadius:99, background:T.tintCream,
-                fontSize:11, fontWeight:700, color:T.tintCreamInk }}>Em breve</div>
+              {gcalConnected && (
+                <div style={{ padding:'4px 10px', borderRadius:99, background:'#DCFCE7',
+                  fontSize:11, fontWeight:700, color:'#16A34A' }}>✓ Conectado</div>
+              )}
             </div>
-            <div style={{ margin:'0 16px 14px', padding:'12px 14px',
-              background:T.bgWash, borderRadius:12 }}>
-              <div style={{ fontSize:12, fontWeight:700, color:T.ink, marginBottom:6 }}>
-                O que é necessário para ativar:
-              </div>
-              <div style={{ fontSize:11, color:T.inkSoft, lineHeight:1.7 }}>
-                • Projeto no Google Cloud com Calendar API ativada{'\n'}
-                • Credenciais OAuth 2.0 (client ID + secret){'\n'}
-                • Autorização do usuário via fluxo OAuth{'\n'}
-                • Armazenamento seguro do token de acesso
-              </div>
+            <div style={{ padding:'0 16px 16px' }}>
+              <button onClick={handleConnectGcal} disabled={gcalBusy}
+                style={{ width:'100%', height:44, borderRadius:99, border:'none',
+                  background: gcalConnected ? T.surface : T.brand,
+                  color: gcalConnected ? T.ink : '#fff',
+                  fontSize:14, fontWeight:700, fontFamily:FONT_BODY,
+                  cursor: gcalBusy ? 'wait' : 'pointer',
+                  boxShadow: gcalConnected ? '0 1px 4px rgba(20,20,30,0.06)' : 'none',
+                  opacity: gcalBusy ? 0.6 : 1 }}>
+                {gcalBusy ? 'Conectando…' : gcalConnected ? 'Desconectar' : 'Conectar Google Calendar'}
+              </button>
+              {!gcalConnected && (
+                <div style={{ fontSize:11, color:T.inkMute, marginTop:8, lineHeight:1.5 }}>
+                  Ao conectar, medicamentos, vacinas e consultas viram lembretes
+                  automaticamente na sua agenda do Google.
+                </div>
+              )}
             </div>
           </div>
         </div>

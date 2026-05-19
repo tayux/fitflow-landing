@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect } from 'react';
+import { pushMedicationEvents, pushVaccineEvent, pushConsultationEvent } from '../utils/googleCalendar.js';
 
 const PETS_FALLBACK = [
   {
@@ -154,9 +155,14 @@ export function PetProvider({ children }) {
   const [loading, setLoading]         = useState(true);
   const [petData, setPetDataState]    = useState(loadPetData);
 
-  const savePetData = (newData) => {
-    setPetDataState(newData);
-    try { localStorage.setItem('mp_pet_data', JSON.stringify(newData)); } catch(e) {}
+  // Accepts either an object (replace) or a function (prev => next). Functional form
+  // is required when calling multiple writes in sequence so each read sees the latest state.
+  const savePetData = (updater) => {
+    setPetDataState(prev => {
+      const next = typeof updater === 'function' ? updater(prev) : updater;
+      try { localStorage.setItem('mp_pet_data', JSON.stringify(next)); } catch(e) {}
+      return next;
+    });
   };
 
   useEffect(() => {
@@ -214,10 +220,9 @@ export function PetProvider({ children }) {
       await fetch(`/api/pets/${id}`, { method: 'DELETE' });
     } catch (e) {}
     localStorage.removeItem(`pet_photo_${id}`);
-    setPetDataState(prev => {
+    savePetData(prev => {
       const next = { ...prev };
       delete next[id];
-      try { localStorage.setItem('mp_pet_data', JSON.stringify(next)); } catch(e) {}
       return next;
     });
     setPets(prev => prev.filter(p => p.id !== id));
@@ -251,58 +256,67 @@ export function PetProvider({ children }) {
   const getList = (key) => (pid ? (petData[pid]?.[key] || []) : []);
   const addToList = (key, item) => {
     if (!pid) return;
-    const newItem = { ...item, id: String(Date.now()), createdAt: new Date().toISOString() };
-    const updated = {
-      ...petData,
-      [pid]: { ...petData[pid], [key]: [newItem, ...(petData[pid]?.[key] || [])] },
-    };
-    savePetData(updated);
+    const newItem = { ...item, id: String(Date.now()) + Math.random().toString(36).slice(2,6), createdAt: new Date().toISOString() };
+    savePetData(prev => ({
+      ...prev,
+      [pid]: { ...prev[pid], [key]: [newItem, ...(prev[pid]?.[key] || [])] },
+    }));
     return newItem;
   };
   const setForPet = (key, value) => {
     if (!pid) return;
-    const updated = { ...petData, [pid]: { ...petData[pid], [key]: value } };
-    savePetData(updated);
+    savePetData(prev => ({ ...prev, [pid]: { ...prev[pid], [key]: value } }));
   };
 
   const medications    = getList('medications');
-  const addMedication  = (med) => addToList('medications', med);
+  const addMedication  = (med) => {
+    const saved = addToList('medications', med);
+    if (saved) pushMedicationEvents(saved, activePet?.name).catch(() => {});
+    return saved;
+  };
   const vaccines       = getList('vaccines');
-  const addVaccine     = (vac) => addToList('vaccines', vac);
+  const addVaccine     = (vac) => {
+    const saved = addToList('vaccines', vac);
+    if (saved) pushVaccineEvent(saved, activePet?.name).catch(() => {});
+    return saved;
+  };
   const expenses       = getList('expenses');
   const addExpense     = (exp) => addToList('expenses', exp);
   const addExpenseForPet = (petId, exp) => {
     if (!petId) return;
-    const newItem = { ...exp, id: String(Date.now()), createdAt: new Date().toISOString() };
-    const updated = {
-      ...petData,
-      [petId]: { ...petData[petId], expenses: [newItem, ...(petData[petId]?.expenses || [])] },
-    };
-    savePetData(updated);
+    const newItem = { ...exp, id: String(Date.now()) + Math.random().toString(36).slice(2,6), createdAt: new Date().toISOString() };
+    savePetData(prev => ({
+      ...prev,
+      [petId]: { ...prev[petId], expenses: [newItem, ...(prev[petId]?.expenses || [])] },
+    }));
     return newItem;
   };
   const consultations  = getList('consultations');
-  const addConsultation = (con) => addToList('consultations', con);
+  const addConsultation = (con) => {
+    const saved = addToList('consultations', con);
+    if (saved) pushConsultationEvent(saved, activePet?.name).catch(() => {});
+    return saved;
+  };
   const hygieneRecords = getList('hygieneRecords');
   const addHygieneRecord = (rec) => {
     if (!pid) return;
     const now = Date.now();
-    const newRec = { ...rec, id: String(now), createdAt: new Date().toISOString() };
-    const current = petData[pid] || {};
-    const nextPetData = {
-      ...current,
-      hygieneRecords: [newRec, ...(current.hygieneRecords || [])],
-    };
-    if (rec.price) {
-      const expense = {
-        id: String(now + 1),
-        createdAt: new Date().toISOString(),
-        cat: 'Higiene', emoji: '✂️', desc: rec.type,
-        amount: rec.price, date: rec.date,
+    const newRec = { ...rec, id: String(now) + 'h', createdAt: new Date().toISOString() };
+    const expense = rec.price ? {
+      id: String(now) + 'e',
+      createdAt: new Date().toISOString(),
+      cat: 'Higiene', emoji: '✂️', desc: rec.type,
+      amount: rec.price, date: rec.date,
+    } : null;
+    savePetData(prev => {
+      const current = prev[pid] || {};
+      const nextPet = {
+        ...current,
+        hygieneRecords: [newRec, ...(current.hygieneRecords || [])],
       };
-      nextPetData.expenses = [expense, ...(current.expenses || [])];
-    }
-    savePetData({ ...petData, [pid]: nextPetData });
+      if (expense) nextPet.expenses = [expense, ...(current.expenses || [])];
+      return { ...prev, [pid]: nextPet };
+    });
     return newRec;
   };
   const healthRecords  = getList('healthRecords');
