@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { T, FONT_BODY } from '../theme.js';
 import { useNav } from '../components/NavContext.jsx';
 import { usePet } from '../components/PetContext.jsx';
-import { Icon, I, Card, EmojiCircle, IconBtn, Eyebrow, Display } from '../components/Shared.jsx';
+import { Icon, I, Card, EmojiCircle, IconBtn, Eyebrow, Display, PetHeader } from '../components/Shared.jsx';
 
 const TINT_MAP = {
   tintLavender: T.tintLavender,
@@ -83,52 +83,13 @@ function MedDetail({ med, onClose }) {
   );
 }
 
-function PetSwitcher({ pets, activePet, onSelect, onClose }) {
-  return (
-    <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.4)',
-      display:'flex', alignItems:'flex-end', zIndex:200 }}
-      onClick={e => e.target === e.currentTarget && onClose()}>
-      <div style={{ width:'100%', background:T.bg, borderRadius:'24px 24px 0 0',
-        padding:'24px 20px 36px' }}>
-        <div style={{ fontSize:17, fontWeight:700, color:T.ink, marginBottom:16 }}>Trocar pet</div>
-        <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
-          {pets.map(p => (
-            <div key={p.id} onClick={() => onSelect(p.id)}
-              style={{ display:'flex', alignItems:'center', gap:14, padding:'14px 16px',
-                background: p.id === activePet?.id ? T.brandSoft : T.surface,
-                borderRadius:16, cursor:'pointer',
-                border: `1.5px solid ${p.id === activePet?.id ? T.brand : 'transparent'}` }}>
-              <div style={{ width:40, height:40, borderRadius:20, overflow:'hidden',
-                background:T.bgWash, display:'flex', alignItems:'center', justifyContent:'center', fontSize:20 }}>
-                {p.photoUrl
-                  ? <img src={p.photoUrl} alt={p.name} style={{ width:'100%', height:'100%', objectFit:'cover' }} />
-                  : '🐾'}
-              </div>
-              <div style={{ flex:1 }}>
-                <div style={{ fontSize:15, fontWeight:700, color: p.id === activePet?.id ? T.brand : T.ink }}>
-                  {p.name}
-                </div>
-                <div style={{ fontSize:12, color:T.inkSoft }}>{p.breed}</div>
-              </div>
-              {p.id === activePet?.id && (
-                <Icon d={I.check} size={18} color={T.brand} stroke={2.5} />
-              )}
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
-
 export default function Meds() {
   const { nav, back } = useNav();
-  const { activePet, setActivePetId, PETS, medications } = usePet();
+  const { activePet, medications } = usePet();
   const [filter, setFilter]     = useState('Ativos');
   const [toggleMap, setToggleMap] = useState({});
   const [detail, setDetail]     = useState(null);
   const [fabOpen, setFabOpen]   = useState(false);
-  const [petSwitch, setPetSwitch] = useState(false);
 
   const toggle = (id) => setToggleMap(prev => ({ ...prev, [id]: !(prev[id] ?? true) }));
   const isOn = (m) => toggleMap[m.id] !== undefined ? toggleMap[m.id] : m.on;
@@ -164,12 +125,7 @@ export default function Meds() {
       <div style={{ padding:'4px 24px 0', display:'flex', alignItems:'center',
         justifyContent:'space-between', marginTop:8 }}>
         <IconBtn icon={I.chevL} onClick={back} />
-        <div style={{ textAlign:'center', cursor:'pointer' }} onClick={() => PETS.length > 1 && setPetSwitch(true)}>
-          <div style={{ fontSize:11, color:T.inkMute, fontWeight:700, letterSpacing:1.2, textTransform:'uppercase' }}>pet</div>
-          <div style={{ fontSize:14, fontWeight:700, color:T.ink, display:'flex', alignItems:'center', gap:4 }}>
-            {activePet.name} {PETS.length > 1 && <Icon d={I.chevD} size={12} color={T.inkSoft} stroke={2.2} />}
-          </div>
-        </div>
+        <PetHeader />
         <div style={{ width:36 }} />
       </div>
       <div style={{ flex:1, display:'flex', flexDirection:'column', alignItems:'center',
@@ -208,8 +164,6 @@ export default function Meds() {
           cursor:'pointer', boxShadow:'0 8px 24px -6px rgba(20,20,30,0.4)',
           fontSize:28, transition:'background 0.2s, transform 0.2s',
           transform: fabOpen ? 'rotate(45deg)' : 'none', zIndex:101 }}>+</div>
-      {petSwitch && <PetSwitcher pets={PETS} activePet={activePet}
-        onSelect={id => { setActivePetId(id); setPetSwitch(false); }} onClose={() => setPetSwitch(false)} />}
     </div>
   );
 
@@ -217,12 +171,7 @@ export default function Meds() {
     <div style={{ height:'100%', display:'flex', flexDirection:'column', background:T.bg, position:'relative' }}>
       <div style={{ padding:'4px 24px 0', display:'flex', alignItems:'center', justifyContent:'space-between', marginTop:8 }}>
         <IconBtn icon={I.chevL} onClick={back} />
-        <div style={{ textAlign:'center', cursor:'pointer' }} onClick={() => PETS.length > 1 && setPetSwitch(true)}>
-          <div style={{ fontSize:11, color:T.inkMute, fontWeight:700, letterSpacing:1.2, textTransform:'uppercase' }}>pet</div>
-          <div style={{ fontSize:13, fontWeight:700, color:T.ink, display:'flex', alignItems:'center', gap:4 }}>
-            {activePet.name} {PETS.length > 1 && <Icon d={I.chevD} size={12} color={T.inkSoft} stroke={2.2} />}
-          </div>
-        </div>
+        <PetHeader />
         <div style={{ width:36 }} />
       </div>
       <div style={{ padding:'20px 24px 0' }}>
@@ -324,8 +273,6 @@ export default function Meds() {
           transform: fabOpen ? 'rotate(45deg)' : 'none', zIndex:101 }}>+</div>
 
       {detail && <MedDetail med={detail} onClose={() => setDetail(null)} />}
-      {petSwitch && <PetSwitcher pets={PETS} activePet={activePet}
-        onSelect={id => { setActivePetId(id); setPetSwitch(false); }} onClose={() => setPetSwitch(false)} />}
     </div>
   );
 }
