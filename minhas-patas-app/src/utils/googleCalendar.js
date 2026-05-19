@@ -82,8 +82,10 @@ async function postEvent(body) {
 }
 
 // --- Medication: creates one recurring daily event per time slot ---
+// Returns a map { 'HH:MM': eventId } for the time slots that were scheduled,
+// so the caller can persist the IDs and later cancel/complete specific instances.
 export async function pushMedicationEvents(med, petName = '') {
-  if (!isCalendarConnected()) return [];
+  if (!isCalendarConnected()) return {};
   const times = Array.isArray(med.times) && med.times.length > 0
     ? med.times
     : ['09:00'];
@@ -97,7 +99,7 @@ export async function pushMedicationEvents(med, petName = '') {
     ? [`RRULE:FREQ=DAILY;UNTIL=${untilIso}T235959Z`]
     : ['RRULE:FREQ=DAILY;COUNT=180']; // ~6 months when continuous
 
-  const results = [];
+  const eventIds = {};
   for (const time of times) {
     const startDT = buildDateTime(startDate, time);
     const endDT   = buildDateTime(startDate, addMinutesHHMM(time, 15));
@@ -115,9 +117,57 @@ export async function pushMedicationEvents(med, petName = '') {
       recurrence,
       reminders: { useDefault: true },
     });
-    results.push(r);
+    if (r.ok && r.event?.id) eventIds[time] = r.event.id;
   }
-  return results;
+  return eventIds;
+}
+
+// Mark a specific occurrence of a recurring event as completed.
+// On Google Calendar there's no "completed" status, so we cancel the instance
+// (which removes that day's reminder) and prefix the summary with ✅ in case
+// the user is looking at the recurring series.
+export async function markOccurrenceComplete({ eventId, brDate, time, complete = true }) {
+  if (!isCalendarConnected() || !eventId || !brDate || !time) return null;
+  const token = localStorage.getItem(TOKEN_KEY);
+  const [d, m, y] = brDate.split('/');
+  const [hh, mm] = time.split(':');
+  if (!d || !m || !y || hh == null || mm == null) return null;
+  const instanceId = `${eventId}_${y}${m.padStart(2,'0')}${d.padStart(2,'0')}T${hh.padStart(2,'0')}${mm.padStart(2,'0')}00`;
+  try {
+    const res = await fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events/${instanceId}`, {
+      method: 'PATCH',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify(complete
+        ? { status: 'cancelled' }
+        : { status: 'confirmed' }),
+    });
+    if (res.status === 401) { disconnectCalendar(); return null; }
+    if (!res.ok) {
+      console.warn('GCal patch failed', res.status, await res.text());
+      return null;
+    }
+    return await res.json();
+  } catch (e) {
+    console.warn('GCal patch error', e);
+    return null;
+  }
+}
+
+// Delete the master recurring event (used when a medication is removed/edited).
+export async function deleteCalendarEvent(eventId) {
+  if (!isCalendarConnected() || !eventId) return false;
+  const token = localStorage.getItem(TOKEN_KEY);
+  try {
+    const res = await fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events/${eventId}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (res.status === 401) { disconnectCalendar(); return false; }
+    return res.ok || res.status === 410;
+  } catch (e) {
+    console.warn('GCal delete error', e);
+    return false;
+  }
 }
 
 // --- Vaccine: single event ---
