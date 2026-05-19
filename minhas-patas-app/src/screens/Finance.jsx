@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { T, FONT_DISPLAY, FONT_BODY } from '../theme.js';
 import { useNav } from '../components/NavContext.jsx';
+import { usePet } from '../components/PetContext.jsx';
 import { Icon, I, Card, EmojiCircle, SectionPill, IconBtn, Eyebrow, Display, BottomNav } from '../components/Shared.jsx';
 
 const MONTHS = [
@@ -63,6 +64,20 @@ function BarChart({ months, selectedKey, peak, onSelect }) {
 
 export default function Finance() {
   const { back } = useNav();
+  const { activePet } = usePet();
+  if (!activePet) return (
+    <div style={{ height:'100%', display:'flex', flexDirection:'column', background:T.bg }}>
+      <div style={{ flex:1, display:'flex', flexDirection:'column', alignItems:'center',
+        justifyContent:'center', gap:16, padding:32, textAlign:'center' }}>
+        <div style={{ fontSize:52 }}>💰</div>
+        <div style={{ fontWeight:800, fontSize:18, color:T.ink, fontFamily:FONT_BODY }}>Sem dados financeiros</div>
+        <div style={{ fontSize:14, color:T.inkSoft, fontFamily:FONT_BODY, maxWidth:260, lineHeight:1.5 }}>
+          Adicione um pet para começar a registrar os gastos.
+        </div>
+      </div>
+      <BottomNav active="finance" />
+    </div>
+  );
   const [selectedKey, setSelectedKey] = useState('mai');
   const selected = MONTHS.find(m => m.key === selectedKey);
   const prevIdx  = MONTHS.findIndex(m => m.key === selectedKey) - 1;

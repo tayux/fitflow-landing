@@ -152,15 +152,22 @@ export const MascotAvatar = ({ size = 40, hue = 270, photo = false }) => {
   );
 };
 
-export const UserAvatar = ({ size = 40, name = 'T', hue = 28 }) => (
-  <div style={{ width:size, height:size, borderRadius:'50%',
-    background:`radial-gradient(120% 120% at 30% 25%, oklch(92% 0.06 ${hue}), oklch(74% 0.13 ${hue}))`,
-    color:'#fff', fontFamily:FONT_BODY, fontWeight:800, fontSize:size * 0.42,
-    display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0,
-    boxShadow:'0 1px 2px rgba(20,20,30,0.08)' }}>
-    {(name[0] || 'T').toUpperCase()}
-  </div>
-);
+export const UserAvatar = ({ size = 40, name = 'T', hue = 28, picture }) => {
+  if (picture) return (
+    <img src={picture} alt={name} referrerPolicy="no-referrer"
+      style={{ width:size, height:size, borderRadius:'50%', objectFit:'cover', flexShrink:0,
+        boxShadow:'0 1px 2px rgba(20,20,30,0.08)', display:'block' }} />
+  );
+  return (
+    <div style={{ width:size, height:size, borderRadius:'50%',
+      background:`radial-gradient(120% 120% at 30% 25%, oklch(92% 0.06 ${hue}), oklch(74% 0.13 ${hue}))`,
+      color:'#fff', fontFamily:FONT_BODY, fontWeight:800, fontSize:size * 0.42,
+      display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0,
+      boxShadow:'0 1px 2px rgba(20,20,30,0.08)' }}>
+      {(name[0] || 'T').toUpperCase()}
+    </div>
+  );
+};
 
 export const StatusBar = ({ dark = false }) => {
   const c = dark ? '#fff' : T.ink;
@@ -188,8 +195,6 @@ export const PhoneShell = ({ children, dark = false, bg }) => (
   <div style={{ width:'100%', height:'100%', background: dark ? '#0F0B1A' : (bg || T.bg),
     display:'flex', flexDirection:'column', fontFamily:FONT_BODY,
     color: dark ? '#fff' : T.ink, position:'relative' }}>
-    <div style={{ position:'absolute', top:11, left:'50%', transform:'translateX(-50%)',
-      width:118, height:34, borderRadius:24, background:'#000', zIndex:60 }} />
     <div style={{ flex:1, overflow:'hidden', position:'relative' }}>{children}</div>
     <HomeBar dark={dark} />
   </div>
