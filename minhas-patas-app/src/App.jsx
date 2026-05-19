@@ -32,6 +32,8 @@ import AddExpense       from './screens/AddExpense.jsx';
 import AddVaccine       from './screens/AddVaccine.jsx';
 import AddVetConsultation from './screens/AddVetConsultation.jsx';
 import EditPet            from './screens/EditPet.jsx';
+import ManagePets         from './screens/ManagePets.jsx';
+import AppFeedback        from './screens/AppFeedback.jsx';
 
 const SCREENS = {
   onboarding:     { component: Onboarding,       dark: false, modal: false },
@@ -61,6 +63,8 @@ const SCREENS = {
   addvaccine:     { component: AddVaccine,        dark: false, modal: true  },
   addvet:         { component: AddVetConsultation,dark: false, modal: true  },
   editpet:        { component: EditPet,          dark: false, modal: true  },
+  managepets:     { component: ManagePets,       dark: false, modal: false },
+  appfeedback:    { component: AppFeedback,      dark: false, modal: true  },
 };
 
 export default function App() {

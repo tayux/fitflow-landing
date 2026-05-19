@@ -260,6 +260,12 @@ export function PetProvider({ children }) {
   const addConsultation = (con) => addToList('consultations', con);
   const hygieneRecords = getList('hygieneRecords');
   const addHygieneRecord = (rec) => addToList('hygieneRecords', rec);
+  const healthRecords  = getList('healthRecords');
+  const addHealthRecord = (rec) => addToList('healthRecords', rec);
+  const documents      = getList('documents');
+  const addDocument    = (doc) => addToList('documents', doc);
+  const feedbacks      = getList('feedbacks');
+  const addFeedback    = (fb) => addToList('feedbacks', fb);
   const feedingConfig  = pid ? (petData[pid]?.feedingConfig || null) : null;
   const setFeedingConfig = (config) => setForPet('feedingConfig', config);
   const todayTasks     = getList('todayTasks');
@@ -274,6 +280,9 @@ export function PetProvider({ children }) {
       expenses, addExpense,
       consultations, addConsultation,
       hygieneRecords, addHygieneRecord,
+      healthRecords, addHealthRecord,
+      documents, addDocument,
+      feedbacks, addFeedback,
       feedingConfig, setFeedingConfig,
       todayTasks, setTodayTasks,
     }}>
