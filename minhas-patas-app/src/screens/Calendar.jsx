@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { T, FONT_BODY, FONT_DISPLAY } from '../theme.js';
 import { useNav } from '../components/NavContext.jsx';
 import { usePet } from '../components/PetContext.jsx';
-import { Icon, I, Card, EmojiCircle, IconBtn, Eyebrow, Display, BottomNav } from '../components/Shared.jsx';
+import { Icon, I, Card, EmojiCircle, IconBtn, Eyebrow, Display, BottomNav, PetHeader } from '../components/Shared.jsx';
 
 const WEEK    = ['D','S','T','Q','Q','S','S'];
 const MONTHS  = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho',
@@ -160,7 +160,7 @@ export default function Calendar() {
       <div style={{ padding:'4px 24px 0', display:'flex', alignItems:'center',
         justifyContent:'space-between', marginTop:8 }}>
         <IconBtn icon={I.chevL} onClick={back} className="btn-press" />
-        <Eyebrow>calendário</Eyebrow>
+        <PetHeader />
         <div style={{ width:40 }} />
       </div>
 

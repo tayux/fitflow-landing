@@ -285,13 +285,25 @@ export function PetProvider({ children }) {
   const addConsultation = (con) => addToList('consultations', con);
   const hygieneRecords = getList('hygieneRecords');
   const addHygieneRecord = (rec) => {
-    addToList('hygieneRecords', rec);
+    if (!pid) return;
+    const now = Date.now();
+    const newRec = { ...rec, id: String(now), createdAt: new Date().toISOString() };
+    const current = petData[pid] || {};
+    const nextPetData = {
+      ...current,
+      hygieneRecords: [newRec, ...(current.hygieneRecords || [])],
+    };
     if (rec.price) {
-      addToList('expenses', {
+      const expense = {
+        id: String(now + 1),
+        createdAt: new Date().toISOString(),
         cat: 'Higiene', emoji: '✂️', desc: rec.type,
         amount: rec.price, date: rec.date,
-      });
+      };
+      nextPetData.expenses = [expense, ...(current.expenses || [])];
     }
+    savePetData({ ...petData, [pid]: nextPetData });
+    return newRec;
   };
   const healthRecords  = getList('healthRecords');
   const addHealthRecord = (rec) => addToList('healthRecords', rec);
