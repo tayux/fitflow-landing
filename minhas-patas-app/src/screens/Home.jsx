@@ -57,7 +57,7 @@ export default function Home() {
                   cursor:'pointer',
                   transition:'background 0.18s, color 0.18s, transform 0.18s cubic-bezier(0.34,1.56,0.64,1)',
                 }}>
-                <MascotAvatar size={28} hue={p.hue} photo={p.photo} />{p.name}
+                <MascotAvatar size={28} hue={p.hue} photo={p.photo} photoUrl={p.photoUrl} />{p.name}
               </div>
             );
           })}

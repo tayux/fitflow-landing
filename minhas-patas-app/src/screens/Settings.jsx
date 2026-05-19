@@ -16,9 +16,10 @@ function Toggle({ on, onChange }) {
   );
 }
 
-function SettingRow({ e, label, arrow, toggle, on, onChange, color }) {
+function SettingRow({ e, label, arrow, toggle, on, onChange, color, onClick }) {
   return (
-    <div style={{ display:'flex', alignItems:'center', padding:'14px 16px', gap:12 }}>
+    <div onClick={onClick} style={{ display:'flex', alignItems:'center', padding:'14px 16px', gap:12,
+      cursor: onClick ? 'pointer' : 'default' }}>
       <div style={{ fontSize:20 }}>{e}</div>
       <div style={{ flex:1, fontSize:14, fontWeight:600, color: color || T.ink }}>{label}</div>
       {arrow && <Icon d={I.chevR} size={16} color={T.inkSoft} />}
@@ -35,21 +36,21 @@ export default function Settings() {
 
   const sections = [
     { title:'Pets', rows:[
-      { e:'🐾', label:'Gerenciar pets', arrow:true },
-      { e:'➕', label:'Adicionar novo pet', arrow:true },
+      { e:'🐾', label:'Gerenciar pets', arrow:true, onClick:() => nav('pet') },
+      { e:'➕', label:'Adicionar novo pet', arrow:true, onClick:() => nav('petonboarding') },
     ]},
     { title:'Notificações & Alarmes', rows:[
       { e:'🔔', label:'Notificações push', toggle:true, key:'push' },
       { e:'⏰', label:'Alarmes sonoros', toggle:true, key:'alarm' },
     ]},
     { title:'Conta & Segurança', rows:[
-      { e:'🔒', label:'Alterar senha', arrow:true },
+      { e:'🔒', label:'Alterar senha', arrow:true, onClick:() => nav('notifications') },
       { e:'👆', label:'Biometria', toggle:true, key:'biometric' },
-      { e:'🛡️', label:'Privacidade', arrow:true },
+      { e:'🛡️', label:'Privacidade', arrow:true, onClick:() => nav('notifications') },
     ]},
     { title:'Dados & Privacidade', rows:[
-      { e:'📤', label:'Exportar dados', arrow:true },
-      { e:'🗑️', label:'Apagar conta', arrow:true, color:'#EF4444' },
+      { e:'📤', label:'Exportar dados', arrow:true, onClick:() => nav('reports') },
+      { e:'🗑️', label:'Apagar conta', arrow:true, color:'#EF4444', onClick:() => nav('notifications') },
     ]},
     { title:'Sobre', rows:[
       { e:'ℹ️', label:'Versão 1.0.0' },
@@ -66,7 +67,7 @@ export default function Settings() {
 
       <div style={{ flex:1, overflowY:'auto', padding:'16px 20px 100px' }}>
         {/* Profile */}
-        <div style={{ background:T.surface, borderRadius:20, padding:'16px 20px',
+        <div onClick={() => nav('notifications')} style={{ background:T.surface, borderRadius:20, padding:'16px 20px',
           display:'flex', alignItems:'center', gap:14, marginBottom:20,
           boxShadow:'0 4px 20px rgba(20,20,30,0.07)', cursor:'pointer' }}>
           <UserAvatar size={52} name={user?.name ?? 'T'} picture={user?.picture} hue={28} />
@@ -102,7 +103,8 @@ export default function Settings() {
                   {i > 0 && <div style={{ height:1, background:T.hairline, marginLeft:48 }} />}
                   <SettingRow
                     e={row.e} label={row.label} arrow={row.arrow} color={row.color}
-                    toggle={row.toggle} on={toggles[row.key]} onChange={t(row.key)} />
+                    toggle={row.toggle} on={toggles[row.key]} onChange={t(row.key)}
+                    onClick={row.onClick} />
                 </div>
               ))}
             </div>

@@ -30,20 +30,29 @@ const inputStyle = {
   fontSize:14, color:T.ink, fontFamily:FONT_BODY,
 };
 
-export default function PetOnboarding() {
-  const { nav, back } = useNav();
-  const { addPet, setActivePetId } = usePet();
+export default function EditPet() {
+  const { back } = useNav();
+  const { activePet, updatePet } = usePet();
   const fileRef = useRef();
 
-  const [name, setName]         = useState('');
-  const [species, setSpecies]   = useState('Cachorro');
-  const [breed, setBreed]       = useState('');
-  const [birthDate, setBirth]   = useState('');
-  const [sex, setSex]           = useState('Fêmea');
-  const [weight, setWeight]     = useState('');
-  const [photoPreview, setPhoto] = useState(null);
+  const pet = activePet || {};
+  const initSpecies = pet.species === 'cat' ? 'Gato' : 'Cachorro';
+  const initSex     = pet.sex === 'male' ? 'Macho' : 'Fêmea';
+  const initWeight  = pet.weight_kg ? String(pet.weight_kg) : '';
+  const initBirth   = pet.birth_year ? `01/01/${pet.birth_year}` : '';
+  const initBreed   = (!pet.breed || pet.breed === 'SRD') ? '' : pet.breed;
+
+  const [name, setName]         = useState(pet.name || '');
+  const [species, setSpecies]   = useState(initSpecies);
+  const [breed, setBreed]       = useState(initBreed);
+  const [birthDate, setBirth]   = useState(initBirth);
+  const [sex, setSex]           = useState(initSex);
+  const [weight, setWeight]     = useState(initWeight);
+  const [photoPreview, setPhoto] = useState(pet.photoUrl || null);
   const [saving, setSaving]     = useState(false);
   const [error, setError]       = useState('');
+
+  if (!activePet) return null;
 
   const handlePhotoChange = (e) => {
     const f = e.target.files?.[0];
@@ -59,17 +68,17 @@ export default function PetOnboarding() {
     setError('');
     try {
       const birthYear = parseYear(birthDate);
-      const newPet = await addPet({
+      const isNewPhoto = photoPreview && photoPreview !== pet.photoUrl;
+      await updatePet(activePet.id, {
         name: name.trim(),
         species: species === 'Cachorro' ? 'dog' : 'cat',
         sex: sex === 'Fêmea' ? 'female' : 'male',
         breed: breed.trim() || null,
         weight_kg: weight ? parseFloat(weight.replace(',', '.')) : null,
         birth_year: birthYear || null,
-        photoDataUrl: photoPreview || null,
+        photoDataUrl: isNewPhoto ? photoPreview : undefined,
       });
-      setActivePetId(newPet.id);
-      nav('home');
+      back();
     } catch (e) {
       setError('Erro ao salvar. Tente novamente.');
     } finally {
@@ -81,20 +90,8 @@ export default function PetOnboarding() {
     <div style={{ height:'100%', display:'flex', flexDirection:'column', background:T.bg }}>
       <div style={{ padding:'12px 20px 0', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
         <IconBtn icon={I.chevL} onClick={back} />
-        <span style={{ fontSize:13, fontWeight:700, color:T.inkSoft }}>Novo pet</span>
+        <span style={{ fontSize:13, fontWeight:700, color:T.inkSoft }}>Editar perfil</span>
         <div style={{ width:36 }} />
-      </div>
-
-      <div style={{ padding:'20px 20px 0' }}>
-        <div style={{ height:4, background:T.brandSoft, borderRadius:4 }}>
-          <div style={{ height:4, width:'100%', background:T.brand, borderRadius:4 }} />
-        </div>
-      </div>
-
-      <div style={{ padding:'24px 20px 0' }}>
-        <div style={{ fontSize:26, fontWeight:800, color:T.ink, lineHeight:1.25 }}>
-          Vamos conhecer<br />seu pet! 🐾
-        </div>
       </div>
 
       <div style={{ flex:1, overflowY:'auto', padding:'20px 20px 100px' }}>
@@ -204,7 +201,7 @@ export default function PetOnboarding() {
           background: saving ? T.brandSoft : T.brand,
           color: saving ? T.brand : '#fff',
           fontSize:16, fontWeight:700, fontFamily:FONT_BODY, cursor: saving ? 'default' : 'pointer' }}>
-          {saving ? 'Salvando...' : 'Adicionar pet'}
+          {saving ? 'Salvando...' : 'Salvar alterações'}
         </button>
         <div onClick={back} style={{ textAlign:'center', marginTop:12, fontSize:14,
           fontWeight:600, color:T.inkSoft, cursor:'pointer' }}>

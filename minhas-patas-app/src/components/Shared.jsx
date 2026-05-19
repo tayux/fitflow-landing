@@ -127,12 +127,14 @@ export const Mascot = ({ size = 200 }) => (
     userSelect:'none', pointerEvents:'none', display:'block', flexShrink:0 }} />
 );
 
-export const MascotAvatar = ({ size = 40, hue = 270, photo = false }) => {
-  if (photo) return (
+export const MascotAvatar = ({ size = 40, hue = 270, photo = false, photoUrl = null }) => {
+  const src = photoUrl || (photo ? '/leia-nova.png' : null);
+  if (src) return (
     <div style={{ width:size, height:size, borderRadius:'50%', overflow:'hidden',
       flexShrink:0, background:T.brandSoft, boxShadow:'0 1px 2px rgba(20,20,30,0.10)' }}>
-      <img src="/leia-nova.png" alt="" draggable={false} style={{
-        width:'100%', height:'100%', objectFit:'contain', objectPosition:'50% 20%',
+      <img src={src} alt="" draggable={false} style={{
+        width:'100%', height:'100%', objectFit: photoUrl ? 'cover' : 'contain',
+        objectPosition:'50% 20%',
         display:'block', userSelect:'none', pointerEvents:'none' }} />
     </div>
   );
