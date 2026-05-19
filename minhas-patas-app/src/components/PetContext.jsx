@@ -209,6 +209,21 @@ export function PetProvider({ children }) {
     return uiPet;
   };
 
+  const deletePet = async (id) => {
+    try {
+      await fetch(`/api/pets/${id}`, { method: 'DELETE' });
+    } catch (e) {}
+    localStorage.removeItem(`pet_photo_${id}`);
+    setPetDataState(prev => {
+      const next = { ...prev };
+      delete next[id];
+      try { localStorage.setItem('mp_pet_data', JSON.stringify(next)); } catch(e) {}
+      return next;
+    });
+    setPets(prev => prev.filter(p => p.id !== id));
+    setActivePetId(prev => prev === id ? null : prev);
+  };
+
   const updatePet = async (id, petData) => {
     const res = await fetch(`/api/pets/${id}`, {
       method: 'PUT',
@@ -256,10 +271,28 @@ export function PetProvider({ children }) {
   const addVaccine     = (vac) => addToList('vaccines', vac);
   const expenses       = getList('expenses');
   const addExpense     = (exp) => addToList('expenses', exp);
+  const addExpenseForPet = (petId, exp) => {
+    if (!petId) return;
+    const newItem = { ...exp, id: String(Date.now()), createdAt: new Date().toISOString() };
+    const updated = {
+      ...petData,
+      [petId]: { ...petData[petId], expenses: [newItem, ...(petData[petId]?.expenses || [])] },
+    };
+    savePetData(updated);
+    return newItem;
+  };
   const consultations  = getList('consultations');
   const addConsultation = (con) => addToList('consultations', con);
   const hygieneRecords = getList('hygieneRecords');
-  const addHygieneRecord = (rec) => addToList('hygieneRecords', rec);
+  const addHygieneRecord = (rec) => {
+    addToList('hygieneRecords', rec);
+    if (rec.price) {
+      addToList('expenses', {
+        cat: 'Higiene', emoji: '✂️', desc: rec.type,
+        amount: rec.price, date: rec.date,
+      });
+    }
+  };
   const healthRecords  = getList('healthRecords');
   const addHealthRecord = (rec) => addToList('healthRecords', rec);
   const documents      = getList('documents');
@@ -274,10 +307,10 @@ export function PetProvider({ children }) {
   return (
     <PetCtx.Provider value={{
       activePet, setActivePetId, PETS: pets, userId, loading,
-      addPet, updatePet,
+      addPet, updatePet, deletePet,
       medications, addMedication,
       vaccines, addVaccine,
-      expenses, addExpense,
+      expenses, addExpense, addExpenseForPet,
       consultations, addConsultation,
       hygieneRecords, addHygieneRecord,
       healthRecords, addHealthRecord,

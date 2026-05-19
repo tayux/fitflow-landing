@@ -65,6 +65,13 @@ function VaccineDetail({ vaccine, onClose }) {
   );
 }
 
+function isOverdue(dateStr) {
+  if (!dateStr) return false;
+  const [d, m, y] = dateStr.split('/');
+  if (!d || !m || !y) return false;
+  return new Date(+y, +m - 1, +d) < new Date(new Date().toDateString());
+}
+
 export default function Vaccines() {
   const { back, nav } = useNav();
   const { activePet, vaccines } = usePet();
@@ -157,8 +164,13 @@ export default function Vaccines() {
                     <div style={{ fontSize:14, fontWeight:700, color:T.ink }}>{v.name}</div>
                     <div style={{ fontSize:12, color:T.inkSoft }}>Próxima: {v.nextDate}</div>
                   </div>
-                  <div style={{ padding:'5px 12px', background:'#DCFCE7', borderRadius:99,
-                    fontSize:11, fontWeight:700, color:'#16A34A' }}>Em dia</div>
+                  {isOverdue(v.nextDate) ? (
+                    <div style={{ padding:'5px 12px', background:'#FEE2E2', borderRadius:99,
+                      fontSize:11, fontWeight:700, color:'#EF4444' }}>Atrasada</div>
+                  ) : (
+                    <div style={{ padding:'5px 12px', background:'#DCFCE7', borderRadius:99,
+                      fontSize:11, fontWeight:700, color:'#16A34A' }}>Em dia</div>
+                  )}
                   <Icon d={I.chevR} size={16} color={T.inkMute} stroke={2} />
                 </div>
               ))}

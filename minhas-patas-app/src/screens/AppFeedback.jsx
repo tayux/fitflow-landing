@@ -16,7 +16,7 @@ const CATEGORIES = ['Geral', 'Bugs', 'Sugestão', 'Design', 'Desempenho'];
 
 export default function AppFeedback() {
   const { back } = useNav();
-  const { addFeedback } = usePet();
+  const { addFeedback, userId } = usePet();
 
   const [rating, setRating]     = useState(null);
   const [category, setCategory] = useState('Geral');
@@ -25,15 +25,29 @@ export default function AppFeedback() {
 
   const canSubmit = rating !== null;
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!canSubmit) return;
+    const ratingLabel = RATINGS.find(r => r.value === rating)?.label;
     addFeedback({
       rating,
       category,
       comment: comment.trim(),
-      ratingLabel: RATINGS.find(r => r.value === rating)?.label,
+      ratingLabel,
       submittedAt: new Date().toISOString(),
     });
+    try {
+      await fetch('/api/feedbacks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          user_id: userId || null,
+          rating,
+          category,
+          comment: comment.trim(),
+          rating_label: ratingLabel,
+        }),
+      });
+    } catch (e) {}
     setSubmitted(true);
   };
 

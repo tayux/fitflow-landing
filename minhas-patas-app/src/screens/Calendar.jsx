@@ -271,16 +271,29 @@ export default function Calendar() {
           )}
 
           {/* Google Calendar connect */}
-          <div style={{ marginTop:20, padding:'14px 16px', background:T.surface, borderRadius:16,
-            display:'flex', alignItems:'center', gap:12, cursor:'pointer',
-            boxShadow:'0 2px 8px rgba(20,20,30,0.05)' }}
-            onClick={() => window.open('https://calendar.google.com', '_blank')}>
-            <div style={{ fontSize:20 }}>📅</div>
-            <div style={{ flex:1 }}>
-              <div style={{ fontSize:14, fontWeight:700, color:T.ink }}>Google Calendar</div>
-              <div style={{ fontSize:12, color:T.inkSoft }}>Sincronizar eventos com o Google</div>
+          <div style={{ marginTop:20, background:T.surface, borderRadius:16,
+            overflow:'hidden', boxShadow:'0 2px 8px rgba(20,20,30,0.05)' }}>
+            <div style={{ padding:'14px 16px', display:'flex', alignItems:'center', gap:12 }}>
+              <div style={{ fontSize:20 }}>📅</div>
+              <div style={{ flex:1 }}>
+                <div style={{ fontSize:14, fontWeight:700, color:T.ink }}>Google Calendar</div>
+                <div style={{ fontSize:12, color:T.inkSoft }}>Integração em breve</div>
+              </div>
+              <div style={{ padding:'4px 10px', borderRadius:99, background:T.tintCream,
+                fontSize:11, fontWeight:700, color:T.tintCreamInk }}>Em breve</div>
             </div>
-            <Icon d={I.chevR} size={16} color={T.inkSoft} stroke={2} />
+            <div style={{ margin:'0 16px 14px', padding:'12px 14px',
+              background:T.bgWash, borderRadius:12 }}>
+              <div style={{ fontSize:12, fontWeight:700, color:T.ink, marginBottom:6 }}>
+                O que é necessário para ativar:
+              </div>
+              <div style={{ fontSize:11, color:T.inkSoft, lineHeight:1.7 }}>
+                • Projeto no Google Cloud com Calendar API ativada{'\n'}
+                • Credenciais OAuth 2.0 (client ID + secret){'\n'}
+                • Autorização do usuário via fluxo OAuth{'\n'}
+                • Armazenamento seguro do token de acesso
+              </div>
+            </div>
           </div>
         </div>
       </div>
