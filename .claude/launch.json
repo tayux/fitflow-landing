@@ -1,0 +1,25 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "Minhas Patas",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["serve", "minhas-patas", "--no-clipboard", "-l", "3456"],
+      "port": 3456
+    },
+    {
+      "name": "Minhas Patas App",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev", "--", "--port", "5177"],
+      "port": 5177,
+      "cwd": "minhas-patas-app"
+    }
+  ,{
+      "name": "Storybook",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "storybook", "--", "--port", "6006", "--no-open"],
+      "port": 6006,
+      "cwd": "minhas-patas-app"
+    }
+  ]
+}
