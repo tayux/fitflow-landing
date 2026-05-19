@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { T, FONT_DISPLAY, FONT_BODY } from '../theme.js';
 import { useNav } from '../components/NavContext.jsx';
 import { usePet } from '../components/PetContext.jsx';
-import { Icon, I, Card, EmojiCircle, SectionPill, IconBtn, Eyebrow, Display, BottomNav } from '../components/Shared.jsx';
+import { Icon, I, Card, EmojiCircle, SectionPill, IconBtn, Eyebrow, Display, BottomNav, PetHeader } from '../components/Shared.jsx';
 
 const MONTH_NAMES = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
 
@@ -138,6 +138,7 @@ export default function Finance() {
     <div style={{ height:'100%', display:'flex', flexDirection:'column', background:T.bg, position:'relative' }}>
       <div style={{ padding:'4px 24px 0', display:'flex', alignItems:'center', justifyContent:'space-between', marginTop:8 }}>
         <IconBtn icon={I.chevL} onClick={back} />
+        <PetHeader />
         <div onClick={() => setShowSearch(s => !s)} style={{ cursor:'pointer' }}>
           <Icon d={I.search} size={22} color={T.ink} stroke={2} />
         </div>
@@ -357,12 +358,12 @@ export default function Finance() {
         )}
 
         <div style={{ marginTop:18 }}>
-          <button onClick={() => nav('reports')} style={{ width:'100%', height:52, borderRadius:99,
+          <button onClick={() => window.print()} style={{ width:'100%', height:52, borderRadius:99,
             background:T.surface, color:T.ink, border:'none', fontFamily:FONT_BODY,
             fontSize:14, fontWeight:600, cursor:'pointer',
             display:'flex', alignItems:'center', justifyContent:'center', gap:6,
             boxShadow:'0 1px 2px rgba(20,20,30,0.04)' }}>
-            <Icon d={I.download} size={16} color={T.ink} stroke={2} /> Exportar PDF
+            <Icon d={I.download} size={16} color={T.ink} stroke={2} /> Imprimir / salvar PDF
           </button>
         </div>
       </div>
@@ -375,6 +376,54 @@ export default function Finance() {
           boxShadow:'0 8px 24px -6px rgba(20,20,30,0.4)', zIndex:10 }}>+</div>
 
       <BottomNav active="finance" />
+
+      {/* Print view — hidden in browser, visible when printing */}
+      <style>{`
+        @media print {
+          body > * { display: none !important; }
+          .mp-print-view { display: block !important; }
+        }
+      `}</style>
+      <div className="mp-print-view" style={{ display:'none' }}>
+        <h1 style={{ fontFamily:'sans-serif', fontSize:22, marginBottom:4 }}>
+          Finanças — {activePet.name}
+        </h1>
+        <p style={{ fontFamily:'sans-serif', fontSize:13, color:'#666', marginBottom:16 }}>
+          {activePet.breed} · Ano {year}
+        </p>
+        <table style={{ width:'100%', borderCollapse:'collapse', fontFamily:'sans-serif', fontSize:13 }}>
+          <thead>
+            <tr style={{ borderBottom:'2px solid #000' }}>
+              <th style={{ textAlign:'left', padding:'6px 8px' }}>Data</th>
+              <th style={{ textAlign:'left', padding:'6px 8px' }}>Categoria</th>
+              <th style={{ textAlign:'left', padding:'6px 8px' }}>Descrição</th>
+              <th style={{ textAlign:'right', padding:'6px 8px' }}>Valor</th>
+            </tr>
+          </thead>
+          <tbody>
+            {allExpenses.sort((a,b) => {
+              const [da,ma,ya] = (a.date||'').split('/');
+              const [db,mb,yb] = (b.date||'').split('/');
+              return new Date(`${yb}-${mb}-${db}`) - new Date(`${ya}-${ma}-${da}`);
+            }).map((e,i) => (
+              <tr key={i} style={{ borderBottom:'1px solid #eee' }}>
+                <td style={{ padding:'5px 8px' }}>{e.date}</td>
+                <td style={{ padding:'5px 8px' }}>{e.cat}</td>
+                <td style={{ padding:'5px 8px' }}>{e.desc}</td>
+                <td style={{ padding:'5px 8px', textAlign:'right' }}>R$ {e.amount}</td>
+              </tr>
+            ))}
+          </tbody>
+          <tfoot>
+            <tr style={{ borderTop:'2px solid #000', fontWeight:'bold' }}>
+              <td colSpan={3} style={{ padding:'6px 8px' }}>Total</td>
+              <td style={{ padding:'6px 8px', textAlign:'right' }}>
+                R$ {fmt(allExpenses.reduce((s,e) => s + parseFloat(e.amount||0), 0))}
+              </td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
     </div>
   );
 }

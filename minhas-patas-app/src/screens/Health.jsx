@@ -26,6 +26,17 @@ function AddForm({ initialType = 'Exame', onSave, onCancel }) {
   const [vet, setVet]     = useState('');
   const [severity, setSev] = useState('Leve');
   const [notes, setNotes] = useState('');
+  const [attachment, setAttachment] = useState(null);
+  const [attachName, setAttachName] = useState('');
+
+  const handleFile = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setAttachName(file.name);
+    const reader = new FileReader();
+    reader.onload = ev => setAttachment(ev.target.result);
+    reader.readAsDataURL(file);
+  };
 
   const types = ['Exame','Alergia','Cirurgia'];
 
@@ -106,6 +117,20 @@ function AddForm({ initialType = 'Exame', onSave, onCancel }) {
               placeholder="Resultado, recomendações..."
               value={notes} onChange={e => setNotes(e.target.value)} />
           </div>
+          <div>
+            <div style={{ fontSize:13, fontWeight:700, color:T.ink, marginBottom:6 }}>
+              Anexar resultado (opcional)
+            </div>
+            <label style={{ display:'flex', alignItems:'center', gap:10, background:T.bgWash,
+              borderRadius:14, padding:'13px 16px', cursor:'pointer' }}>
+              <span style={{ fontSize:18 }}>📎</span>
+              <span style={{ fontSize:13, color: attachName ? T.ink : T.inkSoft, flex:1 }}>
+                {attachName || 'Selecionar imagem ou PDF'}
+              </span>
+              <input type="file" accept="image/*,application/pdf" onChange={handleFile}
+                style={{ display:'none' }} />
+            </label>
+          </div>
         </div>
         <div style={{ display:'flex', gap:12, marginTop:20 }}>
           <button onClick={onCancel} style={{ flex:1, height:48, borderRadius:99,
@@ -113,7 +138,7 @@ function AddForm({ initialType = 'Exame', onSave, onCancel }) {
             fontSize:14, fontWeight:600, fontFamily:FONT_BODY, cursor:'pointer' }}>
             Cancelar
           </button>
-          <button onClick={() => title.trim() && onSave({ type, title, date, vet, severity, notes })}
+          <button onClick={() => title.trim() && onSave({ type, title, date, vet, severity, notes, attachmentBase64: attachment, attachName })}
             style={{ flex:1.5, height:48, borderRadius:99,
               background:T.brand, color:'#fff', border:'none',
               fontSize:14, fontWeight:700, fontFamily:FONT_BODY, cursor:'pointer' }}>
@@ -165,6 +190,24 @@ function DetailModal({ record, onClose }) {
           <div style={{ background:T.bgWash, borderRadius:14, padding:'12px 16px', marginTop:4 }}>
             <div style={{ fontSize:12, fontWeight:600, color:T.inkSoft, marginBottom:4 }}>Observações</div>
             <div style={{ fontSize:13, color:T.ink, lineHeight:1.5 }}>{record.notes}</div>
+          </div>
+        )}
+        {record.attachmentBase64 && (
+          <div style={{ marginTop:12 }}>
+            <div style={{ fontSize:12, fontWeight:600, color:T.inkSoft, marginBottom:6 }}>Anexo</div>
+            {record.attachmentBase64.startsWith('data:image') ? (
+              <img src={record.attachmentBase64} alt="anexo"
+                style={{ width:'100%', borderRadius:14, objectFit:'contain', maxHeight:220 }} />
+            ) : (
+              <a href={record.attachmentBase64} download={record.attachName || 'documento.pdf'}
+                style={{ display:'flex', alignItems:'center', gap:10, background:T.bgWash,
+                  borderRadius:14, padding:'12px 16px', textDecoration:'none' }}>
+                <span style={{ fontSize:20 }}>📄</span>
+                <span style={{ fontSize:13, fontWeight:600, color:T.brand }}>
+                  {record.attachName || 'Baixar PDF'}
+                </span>
+              </a>
+            )}
           </div>
         )}
         <button onClick={onClose} style={{ width:'100%', height:48, borderRadius:99, marginTop:20,

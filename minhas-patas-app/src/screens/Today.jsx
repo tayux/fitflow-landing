@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { T, FONT_BODY, FONT_DISPLAY } from '../theme.js';
 import { useNav } from '../components/NavContext.jsx';
 import { usePet } from '../components/PetContext.jsx';
-import { Icon, I, Card, EmojiCircle, SectionPill, CheckBubble, IconBtn, Display, BottomNav } from '../components/Shared.jsx';
+import { Icon, I, Card, EmojiCircle, SectionPill, CheckBubble, IconBtn, Display, BottomNav, PetHeader } from '../components/Shared.jsx';
 
 const TODAY_LABEL = 'Hoje';
 const TODAY_DATE  = '18 de maio, 2026';
@@ -72,6 +72,7 @@ export default function Today() {
       <div style={{ padding:'4px 24px 0', display:'flex', alignItems:'center',
         justifyContent:'space-between', marginTop:8 }}>
         <IconBtn icon={I.chevL} onClick={back} />
+        <PetHeader />
         <div style={{ display:'flex', gap:8 }}>
           <IconBtn icon={I.cal} className="btn-press" onClick={() => nav('calendar')} />
           <IconBtn icon={I.plus} className="btn-press" onClick={() => nav('addmedication')} />
@@ -110,6 +111,7 @@ export default function Today() {
       <div style={{ padding:'4px 24px 0', display:'flex', alignItems:'center',
         justifyContent:'space-between', marginTop:8 }}>
         <IconBtn icon={I.chevL} onClick={back} />
+        <PetHeader />
         <div style={{ display:'flex', gap:8 }}>
           <IconBtn icon={I.cal} className="btn-press" onClick={() => nav('calendar')} />
           <IconBtn icon={I.plus} className="btn-press" onClick={() => nav('addmedication')} />
