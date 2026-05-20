@@ -250,28 +250,6 @@ export function PetProvider({ children }) {
     return () => { cancelled = true; };
   }, []);
 
-  // Fetch medications from DB whenever the active pet changes
-  useEffect(() => {
-    if (!pid) return;
-    let cancelled = false;
-    (async () => {
-      try {
-        const res = await fetch(`/api/pets/${pid}/medications`);
-        if (!res.ok || cancelled) return;
-        const rows = await res.json();
-        if (cancelled) return;
-        const meds = rows.map(medFromDb);
-        savePetData(prev => ({
-          ...prev,
-          [pid]: { ...prev[pid], medications: meds },
-        }));
-      } catch (e) {
-        console.warn('Falha ao carregar medicamentos:', e.message);
-      }
-    })();
-    return () => { cancelled = true; };
-  }, [pid]);
-
   const addPet = async (petData) => {
     const res = await fetch('/api/pets', {
       method: 'POST',
@@ -342,6 +320,29 @@ export function PetProvider({ children }) {
 
   const activePet = pets.find(p => p.id === activePetId) || (pets.length > 0 ? pets[0] : null);
   const pid = activePet?.id;
+
+  // Fetch medications from DB whenever the active pet changes
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (!pid) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`/api/pets/${pid}/medications`);
+        if (!res.ok || cancelled) return;
+        const rows = await res.json();
+        if (cancelled) return;
+        const meds = rows.map(medFromDb);
+        savePetData(prev => ({
+          ...prev,
+          [pid]: { ...prev[pid], medications: meds },
+        }));
+      } catch (e) {
+        console.warn('Falha ao carregar medicamentos:', e.message);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [pid]);
 
   // Per-pet data helpers
   const getList = (key) => (pid ? (petData[pid]?.[key] || []) : []);
