@@ -64,6 +64,43 @@ const PETS_FALLBACK = [
   },
 ];
 
+// Convert frontend medication object to DB fields
+function medToDb(med) {
+  return {
+    name: med.name,
+    emoji: med.emoji || '💊',
+    type: med.type || 'comprimido',
+    dose: med.dose || null,
+    frequency: med.freq || med.frequency || 'Diário',
+    times: med.times || [],
+    start_date: med.startDate || med.start_date || null,
+    end_date: med.continuous ? null : (med.endDate || med.end_date || null),
+    active: med.on !== false && med.active !== false,
+    notes: med.notes || null,
+  };
+}
+
+// Convert DB row to frontend medication object
+function medFromDb(row) {
+  return {
+    id: row.id,
+    name: row.name,
+    emoji: row.emoji || '💊',
+    type: row.type || 'comprimido',
+    dose: row.dose || null,
+    freq: row.frequency || 'Diário',
+    times: Array.isArray(row.times) ? row.times : [],
+    startDate: row.start_date || null,
+    endDate: row.end_date || null,
+    continuous: !row.end_date,
+    on: row.active !== false,
+    active: row.active !== false,
+    notes: row.notes || null,
+    createdAt: row.created_at,
+    _fromDb: true,
+  };
+}
+
 function dbPetToUi(p) {
   const photoUrl = localStorage.getItem(`pet_photo_${p.id}`) || null;
   let age = '—';
@@ -99,15 +136,29 @@ function dbPetToUi(p) {
 }
 
 async function ensureUser() {
-  let userId = localStorage.getItem('mp_user_id');
-  if (userId) return userId;
-
   const storedUser = JSON.parse(localStorage.getItem('mp_google_user') || 'null');
+  const email = storedUser?.email;
+
+  // Email-first: same Google account always maps to the same DB user across devices
+  if (email) {
+    try {
+      const r = await fetch(`/api/users?email=${encodeURIComponent(email)}`);
+      if (r.ok) {
+        const dbUser = await r.json();
+        localStorage.setItem('mp_user_id', dbUser.id);
+        return dbUser.id;
+      }
+    } catch {}
+  }
+
+  const stored = localStorage.getItem('mp_user_id');
+  if (stored) return stored;
+
   const name = storedUser?.name || 'Usuário';
   const res = await fetch('/api/users', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name, avatar_hue: 28 }),
+    body: JSON.stringify({ name, email: email || null, avatar_hue: 28 }),
   });
   if (!res.ok) throw new Error('Falha ao criar usuário');
   const user = await res.json();
@@ -198,6 +249,28 @@ export function PetProvider({ children }) {
     })();
     return () => { cancelled = true; };
   }, []);
+
+  // Fetch medications from DB whenever the active pet changes
+  useEffect(() => {
+    if (!pid) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`/api/pets/${pid}/medications`);
+        if (!res.ok || cancelled) return;
+        const rows = await res.json();
+        if (cancelled) return;
+        const meds = rows.map(medFromDb);
+        savePetData(prev => ({
+          ...prev,
+          [pid]: { ...prev[pid], medications: meds },
+        }));
+      } catch (e) {
+        console.warn('Falha ao carregar medicamentos:', e.message);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [pid]);
 
   const addPet = async (petData) => {
     const res = await fetch('/api/pets', {
@@ -309,9 +382,18 @@ export function PetProvider({ children }) {
       };
     });
   };
-  const addMedication  = (med) => {
+  const addMedication = (med) => {
     const saved = addToList('medications', med);
-    if (saved) {
+    if (saved && pid) {
+      // Sync to DB in background; on success swap temp id for DB uuid
+      fetch(`/api/pets/${pid}/medications`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(medToDb(med)),
+      }).then(r => r.ok ? r.json() : null).then(row => {
+        if (row?.id) updateItem('medications', saved.id, { id: row.id, _fromDb: true });
+      }).catch(() => {});
+
       pushMedicationEvents(saved, activePet?.name).then(eventIds => {
         if (eventIds && Object.keys(eventIds).length > 0) {
           updateItem('medications', saved.id, { gcalEventIds: eventIds });
@@ -324,6 +406,13 @@ export function PetProvider({ children }) {
     if (!pid) return;
     const existing = (petData[pid]?.medications || []).find(m => m.id === id);
     updateItem('medications', id, patch);
+    const merged = { ...existing, ...patch };
+    // Sync to DB in background
+    fetch(`/api/pets/${pid}/medications?medId=${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(medToDb(merged)),
+    }).catch(() => {});
     // If times/dates changed, drop old GCal events and reschedule.
     const timesChanged = patch.times && JSON.stringify(patch.times) !== JSON.stringify(existing?.times);
     const dateChanged = ('startDate' in patch && patch.startDate !== existing?.startDate)
@@ -331,7 +420,6 @@ export function PetProvider({ children }) {
       || ('continuous' in patch && patch.continuous !== existing?.continuous);
     if ((timesChanged || dateChanged) && existing?.gcalEventIds) {
       Object.values(existing.gcalEventIds).forEach(eid => deleteCalendarEvent(eid).catch(() => {}));
-      const merged = { ...existing, ...patch };
       pushMedicationEvents(merged, activePet?.name).then(eventIds => {
         updateItem('medications', id, { gcalEventIds: eventIds || {} });
       }).catch(() => {});
@@ -344,6 +432,8 @@ export function PetProvider({ children }) {
       Object.values(existing.gcalEventIds).forEach(eid => deleteCalendarEvent(eid).catch(() => {}));
     }
     removeFromList('medications', id);
+    // Sync deletion to DB in background
+    fetch(`/api/pets/${pid}/medications?medId=${id}`, { method: 'DELETE' }).catch(() => {});
   };
 
   // Pushes existing items that don't yet have GCal event IDs (e.g. created
