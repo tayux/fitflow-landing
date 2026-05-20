@@ -29,18 +29,57 @@ function getStartDow(year, month) {
   return new Date(year, month, 1).getDay();
 }
 
-// Build event map from real pet data (medications → daily, consultations, vaccines)
+// Build event map from real pet data (medications → scheduled days only, consultations, vaccines)
 function buildEventMap(medications, consultations, vaccines, year, month) {
   const map = {};
   const addEvent = (day, ev) => {
     if (!map[day]) map[day] = [];
     map[day].push(ev);
   };
-  // Medications: show on every day of the month (simplified)
-  medications.filter(m => m.on !== false).forEach(m => {
-    const days = getDaysInMonth(year, month);
-    for (let d = 1; d <= days; d++) {
-      addEvent(d, { emoji: m.emoji || '💊', tint: T.tintLavender, label: m.name, type: 'med', data: m });
+
+  const parseAnyDate = (d) => {
+    if (!d) return null;
+    if (typeof d === 'string') {
+      if (d.includes('/')) {
+        const [dd, mm, yyyy] = d.split('/');
+        return new Date(+yyyy, +mm - 1, +dd);
+      }
+      const iso = d.split('T')[0].split('-');
+      if (iso.length === 3) return new Date(+iso[0], +iso[1] - 1, +iso[2]);
+    }
+    return null;
+  };
+
+  const daysInMonth = getDaysInMonth(year, month);
+
+  medications.filter(m => m.active !== false && m.on !== false).forEach(m => {
+    const freq = m.freq || m.frequency || 'Diário';
+    if (freq === 'Quando necessário') return;
+
+    const startDate = parseAnyDate(m.start_date || m.startDate);
+    const endDate   = parseAnyDate(m.end_date   || m.endDate);
+
+    for (let d = 1; d <= daysInMonth; d++) {
+      const date = new Date(year, month, d);
+      if (startDate && date < new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate())) continue;
+      if (endDate   && date > new Date(endDate.getFullYear(),   endDate.getMonth(),   endDate.getDate()))   continue;
+
+      let include = false;
+      if (freq === 'Diário') {
+        include = true;
+      } else if (freq === 'Semanal') {
+        const ref = startDate || new Date(year, month, 1);
+        const diff = Math.round((date - ref) / 86400000);
+        include = diff >= 0 && diff % 7 === 0;
+      } else if (freq === 'Quinzenal') {
+        const ref = startDate || new Date(year, month, 1);
+        const diff = Math.round((date - ref) / 86400000);
+        include = diff >= 0 && diff % 14 === 0;
+      } else {
+        include = true;
+      }
+
+      if (include) addEvent(d, { emoji: m.emoji || '💊', tint: T.tintLavender, label: m.name, type: 'med', data: m });
     }
   });
   // Consultations: parse date dd/mm/yyyy
@@ -332,7 +371,7 @@ export default function Calendar() {
                   <div style={{ display:'flex', gap:2, marginTop:2 }}>
                     {(events[day] || []).slice(0,3).map((_,j) => (
                       <div key={j} style={{ width:4, height:4, borderRadius:'50%',
-                        background: isTod ? T.brand : T.inkFaint }} />
+                        background: T.brand }} />
                     ))}
                   </div>
                 )}
