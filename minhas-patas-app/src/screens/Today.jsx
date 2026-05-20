@@ -136,11 +136,12 @@ function MedDetailModal({ med, onClose, onSave, onDelete }) {
             <div style={{ display:'flex', flexWrap:'wrap', gap:8 }}>
               {times.map((t, i) => (
                 <div key={i} style={{ display:'flex', alignItems:'center', gap:4,
-                  background:T.brandSoft, borderRadius:99, padding:'4px 6px 4px 14px' }}>
-                  <input type="time" value={t} onChange={e => updateTime(i, e.target.value)}
+                  background:T.brandSoft, borderRadius:99, padding:'4px 10px 4px 14px' }}>
+                  <input type="time" value={t}
+                    onChange={e => updateTime(i, e.target.value)}
                     style={{ border:'none', outline:'none', background:'transparent',
                       fontSize:14, fontWeight:700, color:T.brand, fontFamily:FONT_BODY,
-                      width:70, cursor:'pointer' }} />
+                      width:76 }} />
                   {times.length > 1 && (
                     <div onClick={() => removeTimeSlot(i)}
                       style={{ width:22, height:22, borderRadius:'50%',

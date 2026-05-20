@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import {
   pushMedicationEvents, pushVaccineEvent, pushConsultationEvent,
-  deleteCalendarEvent,
+  deleteCalendarEvent, isCalendarConnected,
 } from '../utils/googleCalendar.js';
 
 const PETS_FALLBACK = [
@@ -330,10 +330,48 @@ export function PetProvider({ children }) {
     }
     removeFromList('medications', id);
   };
+
+  // Pushes existing items that don't yet have GCal event IDs (e.g. created
+  // before the user connected Google Calendar). Called when the user connects.
+  const syncAllToCalendar = async () => {
+    if (!isCalendarConnected() || !pid) return { meds: 0, vac: 0, con: 0 };
+    const current = petData[pid] || {};
+    let medsPushed = 0, vacPushed = 0, conPushed = 0;
+    for (const m of (current.medications || [])) {
+      if (m.on === false) continue;
+      if (m.gcalEventIds && Object.keys(m.gcalEventIds).length > 0) continue;
+      const ids = await pushMedicationEvents(m, activePet?.name);
+      if (ids && Object.keys(ids).length > 0) {
+        updateItem('medications', m.id, { gcalEventIds: ids });
+        medsPushed++;
+      }
+    }
+    for (const v of (current.vaccines || [])) {
+      if (v.gcalEventId) continue;
+      const r = await pushVaccineEvent(v, activePet?.name);
+      if (r?.ok && r.event?.id) {
+        updateItem('vaccines', v.id, { gcalEventId: r.event.id });
+        vacPushed++;
+      }
+    }
+    for (const c of (current.consultations || [])) {
+      if (c.gcalEventId) continue;
+      const r = await pushConsultationEvent(c, activePet?.name);
+      if (r?.ok && r.event?.id) {
+        updateItem('consultations', c.id, { gcalEventId: r.event.id });
+        conPushed++;
+      }
+    }
+    return { meds: medsPushed, vac: vacPushed, con: conPushed };
+  };
   const vaccines       = getList('vaccines');
   const addVaccine     = (vac) => {
     const saved = addToList('vaccines', vac);
-    if (saved) pushVaccineEvent(saved, activePet?.name).catch(() => {});
+    if (saved) {
+      pushVaccineEvent(saved, activePet?.name).then(r => {
+        if (r?.ok && r.event?.id) updateItem('vaccines', saved.id, { gcalEventId: r.event.id });
+      }).catch(() => {});
+    }
     return saved;
   };
   const expenses       = getList('expenses');
@@ -350,7 +388,11 @@ export function PetProvider({ children }) {
   const consultations  = getList('consultations');
   const addConsultation = (con) => {
     const saved = addToList('consultations', con);
-    if (saved) pushConsultationEvent(saved, activePet?.name).catch(() => {});
+    if (saved) {
+      pushConsultationEvent(saved, activePet?.name).then(r => {
+        if (r?.ok && r.event?.id) updateItem('consultations', saved.id, { gcalEventId: r.event.id });
+      }).catch(() => {});
+    }
     return saved;
   };
   const hygieneRecords = getList('hygieneRecords');
