@@ -1,14 +1,27 @@
 import { useState, useRef, useEffect } from 'react';
 import { T, FONT_DISPLAY, FONT_BODY } from '../theme.js';
 import { useNav } from '../components/NavContext.jsx';
+import { usePet } from '../components/PetContext.jsx';
+import { todayStr } from '../utils/dateUtils.js';
 import { Icon, I, Card, EmojiCircle, SectionPill, IconBtn, Eyebrow, Display, Stripe } from '../components/Shared.jsx';
 
 const MEDS = [
   { name:'Prednisolona 10mg', use:'Reduz coceira e inflamação na pele.',
-    dose:'1 comprimido · 2x ao dia · 7 dias', emoji:'💊', tint:T.tintLavender },
+    dose:'1 comprimido · 2x ao dia · 7 dias', emoji:'💊', tint:T.tintLavender,
+    saveDose:'1', saveUnit:'comprimido', saveFreq:'2× ao dia', saveDays:7,
+    saveTimes:['08:00','20:00'], tintKey:'tintLavender', type:0 },
   { name:'Protetor hepático', use:'Apoia o fígado durante o tratamento.',
-    dose:'2.5ml · 2x ao dia · 14 dias', emoji:'🧴', tint:T.tintSky },
+    dose:'2.5ml · 2x ao dia · 14 dias', emoji:'🧴', tint:T.tintSky,
+    saveDose:'2.5', saveUnit:'ml', saveFreq:'2× ao dia', saveDays:14,
+    saveTimes:['08:00','20:00'], tintKey:'tintSky', type:1 },
 ];
+
+function addDaysBR(brDate, days) {
+  const [d, m, y] = brDate.split('/').map(Number);
+  const dt = new Date(y, m - 1, d);
+  dt.setDate(dt.getDate() + days);
+  return `${String(dt.getDate()).padStart(2,'0')}/${String(dt.getMonth()+1).padStart(2,'0')}/${dt.getFullYear()}`;
+}
 const SCHEDULE = [
   { time:'07h', label:'Manhã', emoji:'🌅', tint:T.tintPeach,    med:'Prednisolona' },
   { time:'15h', label:'Tarde', emoji:'☀️', tint:T.tintCream,    med:'Prednisolona + Protetor' },
@@ -25,12 +38,57 @@ const Spinner = () => (
 
 export default function AIReader() {
   const { nav, back } = useNav();
+  const { addMedication, addDocument } = usePet();
   const [phase, setPhase] = useState('idle'); // idle | loading | done
   const [progress, setProgress] = useState(0);
   const [filename, setFilename] = useState('');
   const [preview, setPreview] = useState(null); // data URL for images
+  const [saving, setSaving] = useState(false);
   const fileRef = useRef(null);
   const camRef  = useRef(null);
+
+  const handleActivate = () => {
+    if (saving) return;
+    setSaving(true);
+    const start = todayStr();
+
+    // 1) Save the receipt itself as a Document in the "Receita" category
+    addDocument({
+      cat: 'Receita',
+      title: filename || `Receita ${start}`,
+      date: start,
+      notes: '',
+      attachmentBase64: preview || null,
+      attachName: filename || '',
+      e: '💊',
+      tint: T.tintLavender,
+    });
+
+    // 2) Save each medication identified
+    MEDS.forEach(m => {
+      addMedication({
+        name: m.name,
+        type: m.type,
+        emoji: m.emoji,
+        tintKey: m.tintKey,
+        dose: m.saveDose,
+        unit: m.saveUnit,
+        freq: m.saveFreq,
+        startDate: start,
+        endDate: addDaysBR(start, m.saveDays),
+        continuous: false,
+        times: m.saveTimes,
+        reminders: true,
+        pushNotif: true,
+        alarm: false,
+        notes: m.use,
+        on: true,
+      });
+    });
+
+    setSaving(false);
+    nav('today');
+  };
 
   // Simulate analysis progress
   useEffect(() => {
@@ -287,11 +345,12 @@ export default function AIReader() {
           </div>
         </Card>
 
-        <button onClick={() => nav('today')} className="btn-press"
+        <button onClick={handleActivate} disabled={saving} className="btn-press"
           style={{ marginTop:22, width:'100%', height:56, borderRadius:99, border:'none',
             background:T.ink, color:'#fff', fontFamily:FONT_BODY, fontSize:15, fontWeight:600,
-            display:'flex', alignItems:'center', justifyContent:'center', gap:8, cursor:'pointer' }}>
-          Ativar agenda completa
+            display:'flex', alignItems:'center', justifyContent:'center', gap:8,
+            cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.6 : 1 }}>
+          {saving ? 'Salvando…' : 'Ativar agenda completa'}
           <Icon d={I.arrow} size={16} color="#fff" stroke={2} />
         </button>
         <div style={{ textAlign:'center', fontSize:12, color:T.inkMute, marginTop:10 }}>

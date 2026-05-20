@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { T, FONT_DISPLAY, FONT_BODY } from '../theme.js';
 import { useNav } from '../components/NavContext.jsx';
 import { usePet } from '../components/PetContext.jsx';
-import { Icon, I, Card, EmojiCircle, SectionPill, IconBtn, Eyebrow, Display, BottomNav } from '../components/Shared.jsx';
+import { Icon, I, Card, EmojiCircle, SectionPill, IconBtn, Eyebrow, Display, BottomNav, PetHeader } from '../components/Shared.jsx';
 
 const MONTH_NAMES = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
 
@@ -138,6 +138,7 @@ export default function Finance() {
     <div style={{ height:'100%', display:'flex', flexDirection:'column', background:T.bg, position:'relative' }}>
       <div style={{ padding:'4px 24px 0', display:'flex', alignItems:'center', justifyContent:'space-between', marginTop:8 }}>
         <IconBtn icon={I.chevL} onClick={back} />
+        <PetHeader />
         <div onClick={() => setShowSearch(s => !s)} style={{ cursor:'pointer' }}>
           <Icon d={I.search} size={22} color={T.ink} stroke={2} />
         </div>
@@ -357,12 +358,12 @@ export default function Finance() {
         )}
 
         <div style={{ marginTop:18 }}>
-          <button onClick={() => nav('reports')} style={{ width:'100%', height:52, borderRadius:99,
+          <button onClick={() => window.print()} style={{ width:'100%', height:52, borderRadius:99,
             background:T.surface, color:T.ink, border:'none', fontFamily:FONT_BODY,
             fontSize:14, fontWeight:600, cursor:'pointer',
             display:'flex', alignItems:'center', justifyContent:'center', gap:6,
             boxShadow:'0 1px 2px rgba(20,20,30,0.04)' }}>
-            <Icon d={I.download} size={16} color={T.ink} stroke={2} /> Exportar PDF
+            <Icon d={I.download} size={16} color={T.ink} stroke={2} /> Imprimir / salvar PDF
           </button>
         </div>
       </div>
@@ -375,6 +376,147 @@ export default function Finance() {
           boxShadow:'0 8px 24px -6px rgba(20,20,30,0.4)', zIndex:10 }}>+</div>
 
       <BottomNav active="finance" />
+
+      {/* Print view — hidden in browser, visible when printing */}
+      <style>{`
+        @media print {
+          @page { margin: 18mm; }
+          body * { visibility: hidden !important; }
+          .mp-print-view, .mp-print-view * { visibility: visible !important; }
+          .mp-print-view {
+            display: block !important;
+            position: absolute !important;
+            top: 0; left: 0;
+            width: 100%;
+            background: #fff !important;
+            color: #000 !important;
+          }
+          .mp-print-view table { page-break-inside: auto; }
+          .mp-print-view tr { page-break-inside: avoid; }
+        }
+      `}</style>
+      <div className="mp-print-view" style={{ display:'none' }}>
+        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-end',
+          borderBottom:'2px solid #000', paddingBottom:12, marginBottom:18 }}>
+          <div>
+            <h1 style={{ fontFamily:'sans-serif', fontSize:24, margin:0, lineHeight:1.1 }}>
+              Finanças — {activePet.name}
+            </h1>
+            <div style={{ fontFamily:'sans-serif', fontSize:12, color:'#444', marginTop:4 }}>
+              {activePet.breed}{activePet.gender ? ` · ${activePet.gender}` : ''}{activePet.age && activePet.age !== '—' ? ` · ${activePet.age}` : ''}
+            </div>
+          </div>
+          <div style={{ fontFamily:'sans-serif', fontSize:12, textAlign:'right', color:'#444' }}>
+            <div style={{ fontWeight:700, color:'#000' }}>Ano {year}</div>
+            <div>Emitido em {new Date().toLocaleDateString('pt-BR')}</div>
+          </div>
+        </div>
+
+        {/* Summary */}
+        <div style={{ display:'flex', gap:14, marginBottom:18, fontFamily:'sans-serif' }}>
+          <div style={{ flex:1, border:'1px solid #ddd', borderRadius:6, padding:'10px 12px' }}>
+            <div style={{ fontSize:10, color:'#666', textTransform:'uppercase', letterSpacing:0.6 }}>Total no ano</div>
+            <div style={{ fontSize:18, fontWeight:700, marginTop:2 }}>
+              R$ {fmt(allExpenses.reduce((s,e) => s + parseFloat(e.amount||0), 0))}
+            </div>
+          </div>
+          <div style={{ flex:1, border:'1px solid #ddd', borderRadius:6, padding:'10px 12px' }}>
+            <div style={{ fontSize:10, color:'#666', textTransform:'uppercase', letterSpacing:0.6 }}>Lançamentos</div>
+            <div style={{ fontSize:18, fontWeight:700, marginTop:2 }}>{allExpenses.length}</div>
+          </div>
+          <div style={{ flex:1, border:'1px solid #ddd', borderRadius:6, padding:'10px 12px' }}>
+            <div style={{ fontSize:10, color:'#666', textTransform:'uppercase', letterSpacing:0.6 }}>Média/mês</div>
+            <div style={{ fontSize:18, fontWeight:700, marginTop:2 }}>R$ {fmt(avg)}</div>
+          </div>
+        </div>
+
+        {/* Category breakdown */}
+        {(() => {
+          const byCat = {};
+          allExpenses.forEach(e => {
+            byCat[e.cat || 'Outros'] = (byCat[e.cat || 'Outros'] || 0) + parseFloat(e.amount || 0);
+          });
+          const totalCat = Object.values(byCat).reduce((s, v) => s + v, 0) || 1;
+          const cats = Object.entries(byCat).sort((a, b) => b[1] - a[1]);
+          if (cats.length === 0) return null;
+          return (
+            <div style={{ marginBottom:18, fontFamily:'sans-serif' }}>
+              <h2 style={{ fontSize:14, margin:'0 0 8px', textTransform:'uppercase', letterSpacing:0.8, color:'#444' }}>
+                Por categoria
+              </h2>
+              <table style={{ width:'100%', borderCollapse:'collapse', fontSize:12 }}>
+                <thead>
+                  <tr style={{ background:'#f4f4f4' }}>
+                    <th style={{ textAlign:'left', padding:'6px 10px', borderBottom:'1px solid #ccc' }}>Categoria</th>
+                    <th style={{ textAlign:'right', padding:'6px 10px', borderBottom:'1px solid #ccc' }}>Valor</th>
+                    <th style={{ textAlign:'right', padding:'6px 10px', borderBottom:'1px solid #ccc', width:60 }}>%</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {cats.map(([cat, val]) => (
+                    <tr key={cat} style={{ borderBottom:'1px solid #eee' }}>
+                      <td style={{ padding:'5px 10px' }}>{cat}</td>
+                      <td style={{ padding:'5px 10px', textAlign:'right' }}>R$ {fmt(val)}</td>
+                      <td style={{ padding:'5px 10px', textAlign:'right' }}>{((val / totalCat) * 100).toFixed(1)}%</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          );
+        })()}
+
+        {/* Detailed expenses */}
+        <div style={{ fontFamily:'sans-serif' }}>
+          <h2 style={{ fontSize:14, margin:'0 0 8px', textTransform:'uppercase', letterSpacing:0.8, color:'#444' }}>
+            Lançamentos detalhados
+          </h2>
+          {allExpenses.length === 0 ? (
+            <div style={{ fontSize:12, color:'#888', padding:'12px 0', textAlign:'center',
+              border:'1px dashed #ddd', borderRadius:6 }}>
+              Nenhum gasto registrado em {year}.
+            </div>
+          ) : (
+            <table style={{ width:'100%', borderCollapse:'collapse', fontSize:12 }}>
+              <thead>
+                <tr style={{ background:'#f4f4f4' }}>
+                  <th style={{ textAlign:'left', padding:'6px 10px', borderBottom:'1px solid #ccc', width:90 }}>Data</th>
+                  <th style={{ textAlign:'left', padding:'6px 10px', borderBottom:'1px solid #ccc', width:130 }}>Categoria</th>
+                  <th style={{ textAlign:'left', padding:'6px 10px', borderBottom:'1px solid #ccc' }}>Descrição</th>
+                  <th style={{ textAlign:'right', padding:'6px 10px', borderBottom:'1px solid #ccc', width:100 }}>Valor</th>
+                </tr>
+              </thead>
+              <tbody>
+                {[...allExpenses].sort((a,b) => {
+                  const [da,ma,ya] = (a.date||'').split('/');
+                  const [db,mb,yb] = (b.date||'').split('/');
+                  return new Date(`${yb}-${mb}-${db}`) - new Date(`${ya}-${ma}-${da}`);
+                }).map((e,i) => (
+                  <tr key={i} style={{ borderBottom:'1px solid #eee' }}>
+                    <td style={{ padding:'5px 10px' }}>{e.date || '—'}</td>
+                    <td style={{ padding:'5px 10px' }}>{e.emoji || ''} {e.cat}</td>
+                    <td style={{ padding:'5px 10px' }}>{e.desc || '—'}</td>
+                    <td style={{ padding:'5px 10px', textAlign:'right' }}>R$ {e.amount}</td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr style={{ borderTop:'2px solid #000', fontWeight:'bold', background:'#fafafa' }}>
+                  <td colSpan={3} style={{ padding:'8px 10px' }}>Total</td>
+                  <td style={{ padding:'8px 10px', textAlign:'right' }}>
+                    R$ {fmt(allExpenses.reduce((s,e) => s + parseFloat(e.amount||0), 0))}
+                  </td>
+                </tr>
+              </tfoot>
+            </table>
+          )}
+        </div>
+
+        <div style={{ marginTop:24, fontFamily:'sans-serif', fontSize:10, color:'#888',
+          textAlign:'center', borderTop:'1px solid #eee', paddingTop:10 }}>
+          Relatório gerado pelo MinhasPatas
+        </div>
+      </div>
     </div>
   );
 }

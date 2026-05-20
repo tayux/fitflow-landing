@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { T, FONT_DISPLAY, FONT_BODY } from '../theme.js';
 import { useNav } from './NavContext.jsx';
+import { usePet } from './PetContext.jsx';
 
 export const Icon = ({ d, size = 22, color = 'currentColor', stroke = 1.6, fill = 'none', style }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill={fill} stroke={color}
@@ -246,6 +247,59 @@ export const Eyebrow = ({ children, color = T.inkMute, style }) => (
   <div style={{ fontFamily:FONT_BODY, fontSize:11, fontWeight:700, letterSpacing:1.4,
     textTransform:'uppercase', color, ...style }}>{children}</div>
 );
+
+export const PetHeader = () => {
+  const { activePet, PETS, setActivePetId } = usePet();
+  const [open, setOpen] = useState(false);
+  if (!activePet) return null;
+  return (
+    <>
+      <div onClick={() => PETS.length > 1 && setOpen(true)}
+        style={{ display:'flex', alignItems:'center', gap:8,
+          background:T.surface, borderRadius:99, padding:'6px 12px 6px 6px',
+          boxShadow:'0 1px 4px rgba(20,20,30,0.07)', cursor: PETS.length > 1 ? 'pointer' : 'default',
+          WebkitTapHighlightColor:'transparent', alignSelf:'flex-start' }}>
+        <MascotAvatar size={28} hue={activePet.hue} photo={activePet.photo} photoUrl={activePet.photoUrl} />
+        <span style={{ fontSize:13, fontWeight:700, color:T.ink, maxWidth:120,
+          overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{activePet.name}</span>
+        {PETS.length > 1 && <Icon d={I.chevD} size={14} color={T.inkSoft} stroke={2} />}
+      </div>
+
+      {open && (
+        <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.4)',
+          display:'flex', alignItems:'flex-end', zIndex:300 }}
+          onClick={() => setOpen(false)}>
+          <div style={{ width:'100%', background:T.bg, borderRadius:'24px 24px 0 0',
+            padding:'20px 20px 40px' }}
+            onClick={e => e.stopPropagation()}>
+            <div style={{ fontSize:15, fontWeight:800, color:T.ink, marginBottom:16 }}>
+              Trocar pet
+            </div>
+            <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+              {PETS.map(p => (
+                <div key={p.id} onClick={() => { setActivePetId(p.id); setOpen(false); }}
+                  style={{ display:'flex', alignItems:'center', gap:12,
+                    background: p.id === activePet.id ? T.brandSoft : T.surface,
+                    borderRadius:16, padding:'12px 14px', cursor:'pointer',
+                    border: `1.5px solid ${p.id === activePet.id ? T.brand : 'transparent'}` }}>
+                  <MascotAvatar size={40} hue={p.hue} photo={p.photo} photoUrl={p.photoUrl} />
+                  <div>
+                    <div style={{ fontSize:15, fontWeight:700, color:T.ink }}>{p.name}</div>
+                    <div style={{ fontSize:12, color:T.inkSoft }}>{p.breed}</div>
+                  </div>
+                  {p.id === activePet.id && (
+                    <div style={{ marginLeft:'auto', padding:'3px 10px', borderRadius:99,
+                      background:T.brand, color:'#fff', fontSize:11, fontWeight:700 }}>ativo</div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+};
 
 export const Stripe = ({ w = '100%', h = 100, radius = 14, label }) => (
   <div style={{ width:w, height:h, borderRadius:radius,

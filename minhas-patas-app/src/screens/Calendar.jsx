@@ -1,8 +1,22 @@
 import { useState } from 'react';
+import { useGoogleLogin } from '@react-oauth/google';
 import { T, FONT_BODY, FONT_DISPLAY } from '../theme.js';
 import { useNav } from '../components/NavContext.jsx';
 import { usePet } from '../components/PetContext.jsx';
-import { Icon, I, Card, EmojiCircle, IconBtn, Eyebrow, Display, BottomNav } from '../components/Shared.jsx';
+import { Icon, I, Card, EmojiCircle, IconBtn, Eyebrow, Display, BottomNav, PetHeader } from '../components/Shared.jsx';
+import {
+  isCalendarConnected, getCalendarEmail, saveCalendarSession,
+  disconnectCalendar, GOOGLE_CALENDAR_SCOPE, markOccurrenceComplete,
+} from '../utils/googleCalendar.js';
+
+function todayBR() {
+  const t = new Date();
+  return `${String(t.getDate()).padStart(2,'0')}/${String(t.getMonth()+1).padStart(2,'0')}/${t.getFullYear()}`;
+}
+function todayIso() {
+  const t = new Date();
+  return `${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}-${String(t.getDate()).padStart(2,'0')}`;
+}
 
 const WEEK    = ['D','S','T','Q','Q','S','S'];
 const MONTHS  = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho',
@@ -56,7 +70,36 @@ function buildEventMap(medications, consultations, vaccines, year, month) {
   return map;
 }
 
-function EventDetail({ ev, onClose }) {
+function EventDetail({ ev, onClose, activePetId, isToday }) {
+  const today = todayBR();
+  const doneKey = activePetId ? `mp_done_${activePetId}_${today}` : null;
+
+  const getDoneMap = () => {
+    try { return JSON.parse(localStorage.getItem(doneKey) || '{}'); } catch { return {}; }
+  };
+
+  const med = ev.type === 'med' ? ev.data : null;
+  const times = med && Array.isArray(med.times) && med.times.length ? med.times : med ? ['--:--'] : [];
+
+  const [doneMap, setDoneMap] = useState(getDoneMap);
+
+  const toggleTime = (time) => {
+    const taskId = `med_${med.id}_${time}`;
+    setDoneMap(prev => {
+      const next = { ...prev, [taskId]: !prev[taskId] };
+      if (doneKey) try { localStorage.setItem(doneKey, JSON.stringify(next)); } catch {}
+      if (med.gcalEventIds?.[time] && isCalendarConnected()) {
+        markOccurrenceComplete({
+          eventId: med.gcalEventIds[time],
+          brDate: today,
+          time,
+          complete: !prev[taskId],
+        }).catch(() => {});
+      }
+      return next;
+    });
+  };
+
   return (
     <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.4)',
       display:'flex', alignItems:'flex-end', zIndex:200 }}
@@ -111,6 +154,42 @@ function EventDetail({ ev, onClose }) {
             )}
           </div>
         )}
+        {/* Check doses for today (only for medication events on today's date) */}
+        {med && isToday && times.length > 0 && times[0] !== '--:--' && (
+          <div style={{ marginTop:16, background:T.bgWash, borderRadius:14, padding:'12px 14px' }}>
+            <div style={{ fontSize:12, fontWeight:700, color:T.inkSoft, marginBottom:8,
+              letterSpacing:0.8, textTransform:'uppercase' }}>
+              Doses de hoje
+            </div>
+            <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+              {times.map(time => {
+                const taskId = `med_${med.id}_${time}`;
+                const done = !!doneMap[taskId];
+                return (
+                  <div key={time} onClick={() => toggleTime(time)}
+                    style={{ display:'flex', alignItems:'center', gap:10,
+                      padding:'8px 12px', borderRadius:10, cursor:'pointer',
+                      background: done ? T.tintMint : T.surface,
+                      transition:'background 0.2s' }}>
+                    <div style={{ width:22, height:22, borderRadius:11,
+                      border: `2px solid ${done ? T.tintMintInk : T.inkFaint}`,
+                      background: done ? T.tintMintInk : 'transparent',
+                      display:'flex', alignItems:'center', justifyContent:'center',
+                      transition:'all 0.15s', flexShrink:0 }}>
+                      {done && <span style={{ fontSize:12, color:'#fff', lineHeight:1 }}>✓</span>}
+                    </div>
+                    <span style={{ fontSize:14, fontWeight:600,
+                      color: done ? T.tintMintInk : T.ink,
+                      textDecoration: done ? 'line-through' : 'none' }}>
+                      {time}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         <button onClick={onClose} style={{ width:'100%', height:48, borderRadius:99, marginTop:20,
           background:T.surface, color:T.ink, border:'none',
           fontSize:14, fontWeight:600, fontFamily:FONT_BODY, cursor:'pointer' }}>
@@ -123,12 +202,54 @@ function EventDetail({ ev, onClose }) {
 
 export default function Calendar() {
   const { back } = useNav();
-  const { medications = [], consultations = [], vaccines = [] } = usePet();
+  const { activePet, medications = [], consultations = [], vaccines = [] } = usePet();
   const today = new Date();
   const [year, setYear]         = useState(today.getFullYear());
   const [month, setMonth]       = useState(today.getMonth());
   const [selectedDay, setSelected] = useState(today.getDate());
   const [eventDetail, setEventDetail] = useState(null);
+  const [gcalConnected, setGcalConnected] = useState(isCalendarConnected());
+  const [gcalEmail, setGcalEmail] = useState(getCalendarEmail());
+  const [gcalBusy, setGcalBusy] = useState(false);
+
+  const connectGoogleCalendar = useGoogleLogin({
+    scope: GOOGLE_CALENDAR_SCOPE,
+    onSuccess: async (tokenResponse) => {
+      try {
+        const info = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+          headers: { Authorization: `Bearer ${tokenResponse.access_token}` },
+        }).then(r => r.json());
+        saveCalendarSession({
+          access_token: tokenResponse.access_token,
+          expires_in: tokenResponse.expires_in || 3600,
+          email: info.email,
+        });
+        setGcalConnected(true);
+        setGcalEmail(info.email || '');
+      } catch (e) {
+        console.warn('Falha ao obter email do Google', e);
+        saveCalendarSession({
+          access_token: tokenResponse.access_token,
+          expires_in: tokenResponse.expires_in || 3600,
+        });
+        setGcalConnected(true);
+      } finally {
+        setGcalBusy(false);
+      }
+    },
+    onError: () => setGcalBusy(false),
+  });
+
+  const handleConnectGcal = () => {
+    if (gcalConnected) {
+      disconnectCalendar();
+      setGcalConnected(false);
+      setGcalEmail('');
+      return;
+    }
+    setGcalBusy(true);
+    connectGoogleCalendar();
+  };
 
   const prevMonth = () => {
     if (month === 0) { setMonth(11); setYear(y => y - 1); } else setMonth(m => m - 1);
@@ -160,7 +281,7 @@ export default function Calendar() {
       <div style={{ padding:'4px 24px 0', display:'flex', alignItems:'center',
         justifyContent:'space-between', marginTop:8 }}>
         <IconBtn icon={I.chevL} onClick={back} className="btn-press" />
-        <Eyebrow>calendário</Eyebrow>
+        <PetHeader />
         <div style={{ width:40 }} />
       </div>
 
@@ -271,22 +392,55 @@ export default function Calendar() {
           )}
 
           {/* Google Calendar connect */}
-          <div style={{ marginTop:20, padding:'14px 16px', background:T.surface, borderRadius:16,
-            display:'flex', alignItems:'center', gap:12, cursor:'pointer',
-            boxShadow:'0 2px 8px rgba(20,20,30,0.05)' }}
-            onClick={() => window.open('https://calendar.google.com', '_blank')}>
-            <div style={{ fontSize:20 }}>📅</div>
-            <div style={{ flex:1 }}>
-              <div style={{ fontSize:14, fontWeight:700, color:T.ink }}>Google Calendar</div>
-              <div style={{ fontSize:12, color:T.inkSoft }}>Sincronizar eventos com o Google</div>
+          <div style={{ marginTop:20, background:T.surface, borderRadius:16,
+            overflow:'hidden', boxShadow:'0 2px 8px rgba(20,20,30,0.05)' }}>
+            <div style={{ padding:'14px 16px', display:'flex', alignItems:'center', gap:12 }}>
+              <div style={{ fontSize:20 }}>📅</div>
+              <div style={{ flex:1, minWidth:0 }}>
+                <div style={{ fontSize:14, fontWeight:700, color:T.ink }}>Google Calendar</div>
+                <div style={{ fontSize:12, color:T.inkSoft, overflow:'hidden',
+                  textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                  {gcalConnected
+                    ? (gcalEmail ? `Conectado: ${gcalEmail}` : 'Conectado')
+                    : 'Sincronizar lembretes com o Google'}
+                </div>
+              </div>
+              {gcalConnected && (
+                <div style={{ padding:'4px 10px', borderRadius:99, background:'#DCFCE7',
+                  fontSize:11, fontWeight:700, color:'#16A34A' }}>✓ Conectado</div>
+              )}
             </div>
-            <Icon d={I.chevR} size={16} color={T.inkSoft} stroke={2} />
+            <div style={{ padding:'0 16px 16px' }}>
+              <button onClick={handleConnectGcal} disabled={gcalBusy}
+                style={{ width:'100%', height:44, borderRadius:99, border:'none',
+                  background: gcalConnected ? T.surface : T.brand,
+                  color: gcalConnected ? T.ink : '#fff',
+                  fontSize:14, fontWeight:700, fontFamily:FONT_BODY,
+                  cursor: gcalBusy ? 'wait' : 'pointer',
+                  boxShadow: gcalConnected ? '0 1px 4px rgba(20,20,30,0.06)' : 'none',
+                  opacity: gcalBusy ? 0.6 : 1 }}>
+                {gcalBusy ? 'Conectando…' : gcalConnected ? 'Desconectar' : 'Conectar Google Calendar'}
+              </button>
+              {!gcalConnected && (
+                <div style={{ fontSize:11, color:T.inkMute, marginTop:8, lineHeight:1.5 }}>
+                  Ao conectar, medicamentos, vacinas e consultas viram lembretes
+                  automaticamente na sua agenda do Google.
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
 
       <BottomNav active="today" />
-      {eventDetail && <EventDetail ev={eventDetail} onClose={() => setEventDetail(null)} />}
+      {eventDetail && (
+        <EventDetail
+          ev={eventDetail}
+          onClose={() => setEventDetail(null)}
+          activePetId={activePet?.id}
+          isToday={isToday(selectedDay)}
+        />
+      )}
     </div>
   );
 }
