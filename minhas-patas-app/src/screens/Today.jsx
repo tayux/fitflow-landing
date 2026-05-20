@@ -349,13 +349,7 @@ export default function Today() {
       </div>
 
       <div style={{ padding:'30px 24px 0', textAlign:'center' }}>
-        <Display size={56} weight={400}
-          style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:8 }}>
-          Hoje
-          <span style={{ fontSize:12, fontFamily:FONT_BODY, fontWeight:700, letterSpacing:0.8,
-            textTransform:'uppercase', padding:'4px 10px', borderRadius:99,
-            background:T.brandSoft, color:T.brand, verticalAlign:'middle' }}>hoje</span>
-        </Display>
+        <Display size={56} weight={400}>Hoje</Display>
         <div style={{ fontSize:16, color:T.inkSoft, marginTop:6 }}>{todayLabel()}</div>
         <div style={{ display:'inline-flex', alignItems:'center', gap:6, padding:'6px 14px',
           borderRadius:99, background:T.surface, fontWeight:700, fontSize:13,

@@ -302,9 +302,10 @@ export function PetProvider({ children }) {
     // Save photo to localStorage separately — can throw QuotaExceededError.
     if (photoDataUrl) {
       try {
+        // Remove old photo first to free space before writing the new one.
+        localStorage.removeItem(`pet_photo_${id}`);
         localStorage.setItem(`pet_photo_${id}`, photoDataUrl);
       } catch (e) {
-        // Quota exceeded — re-throw so the caller can show a specific message.
         throw new Error('photo:quota');
       }
     }
@@ -333,10 +334,15 @@ export function PetProvider({ children }) {
         const rows = await res.json();
         if (cancelled) return;
         const meds = rows.map(medFromDb);
-        savePetData(prev => ({
-          ...prev,
-          [pid]: { ...prev[pid], medications: meds },
-        }));
+        // Only replace local state when DB actually has data.
+        // An empty DB response means the pet's meds haven't been synced yet —
+        // overwriting would wipe medications that only exist in localStorage.
+        if (meds.length > 0) {
+          savePetData(prev => ({
+            ...prev,
+            [pid]: { ...prev[pid], medications: meds },
+          }));
+        }
       } catch (e) {
         console.warn('Falha ao carregar medicamentos:', e.message);
       }
