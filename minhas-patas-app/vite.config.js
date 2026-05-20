@@ -20,7 +20,7 @@ export default defineConfig({
         short_name: 'MinhasPatas',
         description: 'Saúde e bem-estar para o seu pet',
         theme_color: '#7C6BFC',
-        background_color: '#FBFAF7',
+        background_color: '#7C6BFC',
         display: 'standalone',
         orientation: 'portrait',
         start_url: '/',
