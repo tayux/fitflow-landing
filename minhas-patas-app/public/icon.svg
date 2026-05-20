@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <!-- Rounded square background -->
-  <rect width="512" height="512" rx="112" fill="#7C6BFC"/>
+  <!-- Full square background — Android aplica o arredondamento por conta própria -->
+  <rect width="512" height="512" fill="#7C6BFC"/>
 
   <!-- Paw pads (white) -->
   <!-- Top-left toe -->
