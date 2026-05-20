@@ -6,8 +6,17 @@ import { usePet } from '../components/PetContext.jsx';
 import { Icon, I, Card, EmojiCircle, IconBtn, Eyebrow, Display, BottomNav, PetHeader } from '../components/Shared.jsx';
 import {
   isCalendarConnected, getCalendarEmail, saveCalendarSession,
-  disconnectCalendar, GOOGLE_CALENDAR_SCOPE,
+  disconnectCalendar, GOOGLE_CALENDAR_SCOPE, markOccurrenceComplete,
 } from '../utils/googleCalendar.js';
+
+function todayBR() {
+  const t = new Date();
+  return `${String(t.getDate()).padStart(2,'0')}/${String(t.getMonth()+1).padStart(2,'0')}/${t.getFullYear()}`;
+}
+function todayIso() {
+  const t = new Date();
+  return `${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}-${String(t.getDate()).padStart(2,'0')}`;
+}
 
 const WEEK    = ['D','S','T','Q','Q','S','S'];
 const MONTHS  = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho',
@@ -61,7 +70,36 @@ function buildEventMap(medications, consultations, vaccines, year, month) {
   return map;
 }
 
-function EventDetail({ ev, onClose }) {
+function EventDetail({ ev, onClose, activePetId, isToday }) {
+  const today = todayBR();
+  const doneKey = activePetId ? `mp_done_${activePetId}_${today}` : null;
+
+  const getDoneMap = () => {
+    try { return JSON.parse(localStorage.getItem(doneKey) || '{}'); } catch { return {}; }
+  };
+
+  const med = ev.type === 'med' ? ev.data : null;
+  const times = med && Array.isArray(med.times) && med.times.length ? med.times : med ? ['--:--'] : [];
+
+  const [doneMap, setDoneMap] = useState(getDoneMap);
+
+  const toggleTime = (time) => {
+    const taskId = `med_${med.id}_${time}`;
+    setDoneMap(prev => {
+      const next = { ...prev, [taskId]: !prev[taskId] };
+      if (doneKey) try { localStorage.setItem(doneKey, JSON.stringify(next)); } catch {}
+      if (med.gcalEventIds?.[time] && isCalendarConnected()) {
+        markOccurrenceComplete({
+          eventId: med.gcalEventIds[time],
+          brDate: today,
+          time,
+          complete: !prev[taskId],
+        }).catch(() => {});
+      }
+      return next;
+    });
+  };
+
   return (
     <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.4)',
       display:'flex', alignItems:'flex-end', zIndex:200 }}
@@ -116,6 +154,42 @@ function EventDetail({ ev, onClose }) {
             )}
           </div>
         )}
+        {/* Check doses for today (only for medication events on today's date) */}
+        {med && isToday && times.length > 0 && times[0] !== '--:--' && (
+          <div style={{ marginTop:16, background:T.bgWash, borderRadius:14, padding:'12px 14px' }}>
+            <div style={{ fontSize:12, fontWeight:700, color:T.inkSoft, marginBottom:8,
+              letterSpacing:0.8, textTransform:'uppercase' }}>
+              Doses de hoje
+            </div>
+            <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+              {times.map(time => {
+                const taskId = `med_${med.id}_${time}`;
+                const done = !!doneMap[taskId];
+                return (
+                  <div key={time} onClick={() => toggleTime(time)}
+                    style={{ display:'flex', alignItems:'center', gap:10,
+                      padding:'8px 12px', borderRadius:10, cursor:'pointer',
+                      background: done ? T.tintMint : T.surface,
+                      transition:'background 0.2s' }}>
+                    <div style={{ width:22, height:22, borderRadius:11,
+                      border: `2px solid ${done ? T.tintMintInk : T.inkFaint}`,
+                      background: done ? T.tintMintInk : 'transparent',
+                      display:'flex', alignItems:'center', justifyContent:'center',
+                      transition:'all 0.15s', flexShrink:0 }}>
+                      {done && <span style={{ fontSize:12, color:'#fff', lineHeight:1 }}>✓</span>}
+                    </div>
+                    <span style={{ fontSize:14, fontWeight:600,
+                      color: done ? T.tintMintInk : T.ink,
+                      textDecoration: done ? 'line-through' : 'none' }}>
+                      {time}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         <button onClick={onClose} style={{ width:'100%', height:48, borderRadius:99, marginTop:20,
           background:T.surface, color:T.ink, border:'none',
           fontSize:14, fontWeight:600, fontFamily:FONT_BODY, cursor:'pointer' }}>
@@ -128,7 +202,7 @@ function EventDetail({ ev, onClose }) {
 
 export default function Calendar() {
   const { back } = useNav();
-  const { medications = [], consultations = [], vaccines = [] } = usePet();
+  const { activePet, medications = [], consultations = [], vaccines = [] } = usePet();
   const today = new Date();
   const [year, setYear]         = useState(today.getFullYear());
   const [month, setMonth]       = useState(today.getMonth());
@@ -359,7 +433,14 @@ export default function Calendar() {
       </div>
 
       <BottomNav active="today" />
-      {eventDetail && <EventDetail ev={eventDetail} onClose={() => setEventDetail(null)} />}
+      {eventDetail && (
+        <EventDetail
+          ev={eventDetail}
+          onClose={() => setEventDetail(null)}
+          activePetId={activePet?.id}
+          isToday={isToday(selectedDay)}
+        />
+      )}
     </div>
   );
 }

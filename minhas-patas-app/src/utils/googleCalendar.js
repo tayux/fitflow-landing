@@ -54,6 +54,23 @@ function addMinutesHHMM(hhmm, mins) {
   return `${hh}:${mm}`;
 }
 
+function buildRecurrence(freq, untilIso) {
+  if (freq === 'Quinzenal') {
+    return untilIso
+      ? [`RRULE:FREQ=WEEKLY;INTERVAL=2;UNTIL=${untilIso}T235959Z`]
+      : ['RRULE:FREQ=WEEKLY;INTERVAL=2;COUNT=26'];
+  }
+  if (freq === 'Semanal') {
+    return untilIso
+      ? [`RRULE:FREQ=WEEKLY;UNTIL=${untilIso}T235959Z`]
+      : ['RRULE:FREQ=WEEKLY;COUNT=52'];
+  }
+  if (freq === 'Quando necessário') return [];
+  return untilIso
+    ? [`RRULE:FREQ=DAILY;UNTIL=${untilIso}T235959Z`]
+    : ['RRULE:FREQ=DAILY;COUNT=180'];
+}
+
 // Generic event creator. Returns { ok, event } or { ok:false, expired }.
 async function postEvent(body) {
   const token = localStorage.getItem(TOKEN_KEY);
@@ -95,9 +112,7 @@ export async function pushMedicationEvents(med, petName = '') {
   })();
 
   const untilIso = med.endDate && !med.continuous ? brToISODate(med.endDate)?.replace(/-/g, '') : null;
-  const recurrence = untilIso
-    ? [`RRULE:FREQ=DAILY;UNTIL=${untilIso}T235959Z`]
-    : ['RRULE:FREQ=DAILY;COUNT=180']; // ~6 months when continuous
+  const recurrence = buildRecurrence(med.freq || '', untilIso);
 
   const eventIds = {};
   for (const time of times) {
@@ -154,9 +169,10 @@ export async function markOccurrenceComplete({ eventId, brDate, time, complete =
 }
 
 // Delete the master recurring event (used when a medication is removed/edited).
+// Attempts even if the local expiry says expired — the API will return 401 if truly expired.
 export async function deleteCalendarEvent(eventId) {
-  if (!isCalendarConnected() || !eventId) return false;
   const token = localStorage.getItem(TOKEN_KEY);
+  if (!token || !eventId) return false;
   try {
     const res = await fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events/${eventId}`, {
       method: 'DELETE',

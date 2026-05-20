@@ -13,8 +13,9 @@ const TINT_MAP = {
   tintCream:    T.tintCream,
 };
 
-function MedDetail({ med, onClose }) {
+function MedDetail({ med, onClose, onDelete }) {
   const tint = TINT_MAP[med.tintKey] || T.tintLavender;
+  const [confirm, setConfirm] = useState(false);
   return (
     <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.4)',
       display:'flex', alignItems:'flex-end', zIndex:200 }}
@@ -23,12 +24,16 @@ function MedDetail({ med, onClose }) {
         padding:'24px 20px 40px' }}>
         <div style={{ display:'flex', alignItems:'center', gap:14, marginBottom:20 }}>
           <EmojiCircle emoji={med.emoji || '💊'} size={52} tint={tint} />
-          <div>
+          <div style={{ flex:1 }}>
             <div style={{ fontSize:18, fontWeight:800, color:T.ink }}>{med.name}</div>
             <div style={{ fontSize:13, color:T.inkSoft, marginTop:2 }}>
               {med.type || 'Medicamento'}
             </div>
           </div>
+          <div onClick={() => setConfirm(true)}
+            style={{ width:36, height:36, borderRadius:12, background:'#FEE2E2',
+              display:'flex', alignItems:'center', justifyContent:'center',
+              cursor:'pointer', fontSize:16, flexShrink:0 }}>🗑️</div>
         </div>
         <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
           {med.dose && (
@@ -78,6 +83,33 @@ function MedDetail({ med, onClose }) {
           fontSize:14, fontWeight:600, fontFamily:FONT_BODY, cursor:'pointer' }}>
           Fechar
         </button>
+
+        {confirm && (
+          <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.4)',
+            display:'flex', alignItems:'center', justifyContent:'center', zIndex:300, padding:20 }}>
+            <div style={{ background:T.bg, borderRadius:20, padding:'22px 20px', maxWidth:340, width:'100%' }}>
+              <div style={{ fontSize:36, textAlign:'center', marginBottom:8 }}>🗑️</div>
+              <div style={{ fontSize:16, fontWeight:800, color:T.ink, textAlign:'center', marginBottom:6 }}>
+                Remover {med.name}?
+              </div>
+              <div style={{ fontSize:13, color:T.inkSoft, textAlign:'center', lineHeight:1.5, marginBottom:18 }}>
+                O medicamento e seus lembretes no Google Calendar serão removidos.
+              </div>
+              <div style={{ display:'flex', gap:10 }}>
+                <button onClick={() => setConfirm(false)} style={{ flex:1, height:44, borderRadius:99,
+                  background:T.surface, color:T.ink, border:'none',
+                  fontSize:14, fontWeight:600, fontFamily:FONT_BODY, cursor:'pointer' }}>
+                  Cancelar
+                </button>
+                <button onClick={() => { onDelete(); onClose(); }} style={{ flex:1, height:44, borderRadius:99,
+                  background:'#EF4444', color:'#fff', border:'none',
+                  fontSize:14, fontWeight:700, fontFamily:FONT_BODY, cursor:'pointer' }}>
+                  Remover
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -85,7 +117,7 @@ function MedDetail({ med, onClose }) {
 
 export default function Meds() {
   const { nav, back } = useNav();
-  const { activePet, medications } = usePet();
+  const { activePet, medications, deleteMedication } = usePet();
   const [filter, setFilter]     = useState('Ativos');
   const [toggleMap, setToggleMap] = useState({});
   const [detail, setDetail]     = useState(null);
@@ -272,7 +304,13 @@ export default function Meds() {
           fontSize:28, transition:'background 0.2s, transform 0.2s',
           transform: fabOpen ? 'rotate(45deg)' : 'none', zIndex:101 }}>+</div>
 
-      {detail && <MedDetail med={detail} onClose={() => setDetail(null)} />}
+      {detail && (
+        <MedDetail
+          med={detail}
+          onClose={() => setDetail(null)}
+          onDelete={() => { deleteMedication(detail.id); setDetail(null); }}
+        />
+      )}
     </div>
   );
 }

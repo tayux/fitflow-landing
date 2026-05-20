@@ -13,7 +13,7 @@ const TYPES = [
 const TYPE_EMOJI  = ['💊','🧴','💉','🩹'];
 const TYPE_TINTS  = ['tintLavender','tintSky','tintMint','tintPeach'];
 
-const FREQ_OPTIONS = ['1× ao dia','2× ao dia','3× ao dia','4× ao dia','A cada 8h','A cada 12h','Semanal','Quando necessário'];
+const FREQ_OPTIONS = ['1× ao dia','2× ao dia','3× ao dia','4× ao dia','A cada 8h','A cada 12h','Semanal','Quinzenal','Quando necessário'];
 const UNIT_OPTIONS = ['mg','ml','g','comprimido','gota'];
 
 const SUGGESTED_TIMES = {
@@ -24,8 +24,30 @@ const SUGGESTED_TIMES = {
   'A cada 8h':         ['06:00','14:00','22:00'],
   'A cada 12h':        ['08:00','20:00'],
   'Semanal':           ['09:00'],
+  'Quinzenal':         ['09:00'],
   'Quando necessário': [],
 };
+
+// Auto-suggest end date: Semanal = 12 weeks, Quinzenal = 12 doses (24 weeks)
+const FREQ_END_DAYS = { 'Semanal': 84, 'Quinzenal': 168 };
+
+function addDaysToIso(isoDate, days) {
+  if (!isoDate) return '';
+  const d = new Date(isoDate + 'T00:00:00');
+  d.setDate(d.getDate() + days);
+  return d.toISOString().slice(0, 10);
+}
+
+function nextDoseDates(startIso, freqLabel, count = 4) {
+  if (!startIso) return [];
+  const intervalDays = freqLabel === 'Quinzenal' ? 14 : freqLabel === 'Semanal' ? 7 : 0;
+  if (!intervalDays) return [];
+  const dates = [];
+  for (let i = 1; i <= count; i++) {
+    dates.push(addDaysToIso(startIso, intervalDays * i));
+  }
+  return dates;
+}
 
 function Toggle({ on, onChange }) {
   return (
@@ -77,6 +99,17 @@ export default function AddMedication() {
   const handleFreqChange = (idx) => {
     setFreqIdx(idx);
     setTimes(SUGGESTED_TIMES[FREQ_OPTIONS[idx]] || []);
+    const freq = FREQ_OPTIONS[idx];
+    const days = FREQ_END_DAYS[freq];
+    if (days && startIso) setEndIso(addDaysToIso(startIso, days));
+    else if (!days && FREQ_END_DAYS[FREQ_OPTIONS[freqIdx]]) setEndIso('');
+  };
+
+  const handleStartChange = (iso) => {
+    setStartIso(iso);
+    const freq = FREQ_OPTIONS[freqIdx];
+    const days = FREQ_END_DAYS[freq];
+    if (days && iso) setEndIso(addDaysToIso(iso, days));
   };
 
   const updateTime = (i, value) => {
@@ -185,7 +218,7 @@ export default function AddMedication() {
             <div style={{ display:'flex', gap:10 }}>
               <div style={{ flex:1, background:T.bgWash, borderRadius:14, padding:'10px 14px' }}>
                 <div style={{ fontSize:11, color:T.inkSoft, marginBottom:4 }}>📅 Início</div>
-                <input type="date" value={startIso} onChange={e => setStartIso(e.target.value)}
+                <input type="date" value={startIso} onChange={e => handleStartChange(e.target.value)}
                   style={inputStyle({ fontSize:13, fontWeight:700, color: startIso ? T.ink : T.inkMute })} />
               </div>
               <div style={{ flex:1, background:T.bgWash, borderRadius:14, padding:'10px 14px' }}>
@@ -204,6 +237,33 @@ export default function AddMedication() {
             <span style={{ fontSize:14, fontWeight:600, color:T.ink }}>Uso contínuo</span>
             <Toggle on={continuous} onChange={setCont} />
           </div>
+
+          {/* Next dose preview for weekly/biweekly frequencies */}
+          {(() => {
+            const freq = FREQ_OPTIONS[freqIdx];
+            const preview = nextDoseDates(startIso, freq);
+            if (!preview.length) return null;
+            const fmt = (iso) => {
+              const [y,m,d] = iso.split('-');
+              return `${d}/${m}/${y}`;
+            };
+            return (
+              <div style={{ background:T.brandSoft, borderRadius:14, padding:'12px 16px' }}>
+                <div style={{ fontSize:11, fontWeight:700, color:T.brand, marginBottom:6,
+                  letterSpacing:0.8, textTransform:'uppercase' }}>
+                  Próximas doses
+                </div>
+                <div style={{ display:'flex', flexWrap:'wrap', gap:6 }}>
+                  {preview.map((iso, i) => (
+                    <span key={i} style={{ fontSize:12, fontWeight:700, color:T.brand,
+                      background:'rgba(255,255,255,0.6)', borderRadius:99, padding:'3px 10px' }}>
+                      {fmt(iso)}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            );
+          })()}
         </div>
 
         {/* Horários */}
@@ -222,11 +282,12 @@ export default function AddMedication() {
             <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
               {times.map((t, i) => (
                 <div key={i} style={{ display:'flex', alignItems:'center', gap:4,
-                  background:T.brandSoft, borderRadius:99, padding:'4px 6px 4px 14px' }}>
-                  <input type="time" value={t} onChange={e => updateTime(i, e.target.value)}
+                  background:T.brandSoft, borderRadius:99, padding:'4px 10px 4px 14px' }}>
+                  <input type="time" value={t}
+                    onChange={e => updateTime(i, e.target.value)}
                     style={{ border:'none', outline:'none', background:'transparent',
                       fontSize:14, fontWeight:700, color:T.brand, fontFamily:FONT_BODY,
-                      width:64, cursor:'pointer' }} />
+                      width:76 }} />
                   <div onClick={() => removeTimeSlot(i)}
                     style={{ width:22, height:22, borderRadius:'50%',
                       background:'rgba(255,255,255,0.6)', display:'flex',

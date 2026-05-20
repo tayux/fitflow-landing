@@ -34,6 +34,7 @@ import AddVetConsultation from './screens/AddVetConsultation.jsx';
 import EditPet            from './screens/EditPet.jsx';
 import ManagePets         from './screens/ManagePets.jsx';
 import AppFeedback        from './screens/AppFeedback.jsx';
+import InstallPrompt      from './components/InstallPrompt.jsx';
 
 const SCREENS = {
   onboarding:     { component: Onboarding,       dark: false, modal: false },
@@ -115,6 +116,7 @@ export default function App() {
                 <Screen />
               </div>
             </PhoneShell>
+            <InstallPrompt />
           </div>
         </div>
       </PetProvider>
