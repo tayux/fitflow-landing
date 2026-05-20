@@ -233,20 +233,35 @@ export function PetProvider({ children }) {
   };
 
   const updatePet = async (id, petData) => {
+    // Never send photoDataUrl to the API — it can be several MB and the server
+    // doesn't store it. The photo lives only in localStorage.
+    const { photoDataUrl, ...apiFields } = petData;
+
     const res = await fetch(`/api/pets/${id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(petData),
+      body: JSON.stringify(apiFields),
     });
-    if (!res.ok) throw new Error('Falha ao atualizar pet');
-    const updated = await res.json();
-    if (petData.photoDataUrl) {
-      localStorage.setItem(`pet_photo_${id}`, petData.photoDataUrl);
+    if (!res.ok) {
+      const text = await res.text().catch(() => '');
+      throw new Error(`api:${res.status}:${text}`);
     }
+    const updated = await res.json();
+
+    // Save photo to localStorage separately — can throw QuotaExceededError.
+    if (photoDataUrl) {
+      try {
+        localStorage.setItem(`pet_photo_${id}`, photoDataUrl);
+      } catch (e) {
+        // Quota exceeded — re-throw so the caller can show a specific message.
+        throw new Error('photo:quota');
+      }
+    }
+
     const uiPet = dbPetToUi(updated);
-    if (petData.photoDataUrl) {
+    if (photoDataUrl) {
       uiPet.photo = true;
-      uiPet.photoUrl = petData.photoDataUrl;
+      uiPet.photoUrl = photoDataUrl;
     }
     setPets(prev => prev.map(p => p.id === id ? uiPet : p));
     return uiPet;
