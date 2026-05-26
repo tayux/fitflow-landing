@@ -3,6 +3,7 @@ import {
   pushMedicationEvents, pushVaccineEvent, pushConsultationEvent,
   deleteCalendarEvent, isCalendarConnected,
 } from '../utils/googleCalendar.js';
+import { ddmmToIso, isoToDdmm } from '../utils/dateUtils.js';
 
 const PETS_FALLBACK = [
   {
@@ -64,6 +65,8 @@ const PETS_FALLBACK = [
   },
 ];
 
+// ── DB ↔ UI helpers ─────────────────────────────────────────────────────────
+
 // Convert frontend medication object to DB fields
 function medToDb(med) {
   return {
@@ -73,8 +76,8 @@ function medToDb(med) {
     dose: med.dose || null,
     frequency: med.freq || med.frequency || 'Diário',
     times: med.times || [],
-    start_date: med.startDate || med.start_date || null,
-    end_date: med.continuous ? null : (med.endDate || med.end_date || null),
+    start_date: ddmmToIso(med.startDate || med.start_date) || null,
+    end_date: med.continuous ? null : (ddmmToIso(med.endDate || med.end_date) || null),
     active: med.on !== false && med.active !== false,
     notes: med.notes || null,
   };
@@ -90,8 +93,8 @@ function medFromDb(row) {
     dose: row.dose || null,
     freq: row.frequency || 'Diário',
     times: Array.isArray(row.times) ? row.times : [],
-    startDate: row.start_date || null,
-    endDate: row.end_date || null,
+    startDate: isoToDdmm(row.start_date) || null,
+    endDate: isoToDdmm(row.end_date) || null,
     continuous: !row.end_date,
     on: row.active !== false,
     active: row.active !== false,
@@ -101,8 +104,97 @@ function medFromDb(row) {
   };
 }
 
+// Health records (healthRecords, consultations, hygieneRecords, documents all share this table)
+function healthToDb(rec, defaultType = 'saude') {
+  return {
+    type: rec.type || defaultType,
+    title: rec.title || rec.type || rec.desc || rec.procedure || 'Registro',
+    // Convert dd/mm/yyyy → yyyy-mm-dd for Postgres DATE column
+    date: ddmmToIso(rec.date) || new Date().toISOString().slice(0, 10),
+    vet_name: rec.vet || rec.vet_name || null,
+    clinic: rec.clinic || null,
+    notes: rec.notes || null,
+    cost_brl: rec.cost ? parseFloat(rec.cost) : (rec.price ? parseFloat(rec.price) : null),
+    // Store attachment in DB; never bloat localStorage with base64
+    attachment_url: rec.attachmentBase64 || rec.attachment_url || null,
+  };
+}
+
+function healthFromDb(row) {
+  return {
+    id: row.id,
+    type: row.type,
+    title: row.title,
+    // Convert yyyy-mm-dd back to dd/mm/yyyy for UI display
+    date: isoToDdmm(row.date) || row.date,
+    vet: row.vet_name || null,
+    vet_name: row.vet_name || null,
+    clinic: row.clinic || null,
+    notes: row.notes || null,
+    cost: row.cost_brl ? String(row.cost_brl) : null,
+    price: row.cost_brl ? String(row.cost_brl) : null,
+    attachmentBase64: row.attachment_url || null,
+    attachment_url: row.attachment_url || null,
+    // AI explanation cached in DB — load it so the UI never re-calls the API
+    aiExplanation: row.ai_explanation || null,
+    createdAt: row.created_at,
+    _fromDb: true,
+  };
+}
+
+function vaccineToDb(vac) {
+  return {
+    name: vac.name || vac.vaccine || 'Vacina',
+    date: ddmmToIso(vac.date) || new Date().toISOString().slice(0, 10),
+    next_date: ddmmToIso(vac.nextDate || vac.next_date) || null,
+    lot: vac.lot || vac.batch || null,
+    vet_name: vac.vet || vac.vet_name || null,
+  };
+}
+
+function vaccineFromDb(row) {
+  return {
+    id: row.id,
+    name: row.name,
+    date: isoToDdmm(row.date) || row.date,
+    nextDate: isoToDdmm(row.next_date) || null,
+    next_date: row.next_date || null,
+    lot: row.lot || null,
+    vet: row.vet_name || null,
+    vet_name: row.vet_name || null,
+    createdAt: row.created_at,
+    _fromDb: true,
+  };
+}
+
+function financeToDb(exp) {
+  return {
+    category: exp.cat || exp.category || 'Outros',
+    description: exp.desc || exp.description || null,
+    amount_brl: parseFloat(exp.amount || exp.amount_brl || 0),
+    date: ddmmToIso(exp.date) || new Date().toISOString().slice(0, 10),
+  };
+}
+
+function financeFromDb(row) {
+  return {
+    id: row.id,
+    cat: row.category,
+    category: row.category,
+    desc: row.description || null,
+    description: row.description || null,
+    amount: row.amount_brl ? String(row.amount_brl) : '0',
+    amount_brl: row.amount_brl,
+    date: isoToDdmm(row.date) || row.date,
+    emoji: '💰',
+    createdAt: row.created_at,
+    _fromDb: true,
+  };
+}
+
 function dbPetToUi(p) {
-  const photoUrl = localStorage.getItem(`pet_photo_${p.id}`) || null;
+  // Prefer photo from DB; fall back to localStorage (older devices before sync)
+  const photoUrl = p.photo_url || localStorage.getItem(`pet_photo_${p.id}`) || null;
   let age = '—';
   if (p.birth_year) {
     const years = new Date().getFullYear() - p.birth_year;
@@ -214,10 +306,36 @@ export function PetProvider({ children }) {
   const savePetData = (updater) => {
     setPetDataState(prev => {
       const next = typeof updater === 'function' ? updater(prev) : updater;
-      try { localStorage.setItem('mp_pet_data', JSON.stringify(next)); } catch(e) {}
+      try {
+        // Strip attachmentBase64 from all health-type records before persisting to
+        // localStorage — base64 attachments can be several MB and quickly exhaust
+        // the ~5 MB quota. The attachment lives in the DB (attachment_url).
+        const stripped = Object.fromEntries(
+          Object.entries(next).map(([petId, data]) => [
+            petId,
+            {
+              ...data,
+              ...(data.healthRecords ? { healthRecords: data.healthRecords.map(stripAttachment) } : {}),
+              ...(data.consultations ? { consultations: data.consultations.map(stripAttachment) } : {}),
+              ...(data.hygieneRecords ? { hygieneRecords: data.hygieneRecords.map(stripAttachment) } : {}),
+              ...(data.documents     ? { documents:     data.documents.map(stripAttachment)     } : {}),
+            },
+          ])
+        );
+        localStorage.setItem('mp_pet_data', JSON.stringify(stripped));
+      } catch(e) {
+        console.warn('mp_pet_data save failed:', e?.name, e?.message?.slice(0, 80));
+      }
       return next;
     });
   };
+
+  // Remove large base64 blobs before writing to localStorage; keep only DB reference.
+  function stripAttachment(item) {
+    if (!item.attachmentBase64) return item;
+    const { attachmentBase64, ...rest } = item;
+    return rest;
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -251,20 +369,19 @@ export function PetProvider({ children }) {
   }, []);
 
   const addPet = async (petData) => {
+    const { photoDataUrl, ...fields } = petData;
     const res = await fetch('/api/pets', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ user_id: userId, ...petData }),
+      body: JSON.stringify({ user_id: userId, ...fields, photo_url: photoDataUrl || null }),
     });
     if (!res.ok) throw new Error('Falha ao criar pet');
     const newPet = await res.json();
-    const uiPet = dbPetToUi(newPet);
-    // Save photo to localStorage if provided
-    if (petData.photoDataUrl) {
-      localStorage.setItem(`pet_photo_${newPet.id}`, petData.photoDataUrl);
-      uiPet.photo = true;
-      uiPet.photoUrl = petData.photoDataUrl;
+    // Also cache photo in localStorage for faster first paint
+    if (photoDataUrl) {
+      try { localStorage.setItem(`pet_photo_${newPet.id}`, photoDataUrl); } catch {}
     }
+    const uiPet = dbPetToUi(newPet);
     setPets(prev => [...prev, uiPet]);
     return uiPet;
   };
@@ -284,14 +401,13 @@ export function PetProvider({ children }) {
   };
 
   const updatePet = async (id, petData) => {
-    // Never send photoDataUrl to the API — it can be several MB and the server
-    // doesn't store it. The photo lives only in localStorage.
-    const { photoDataUrl, ...apiFields } = petData;
+    const { photoDataUrl, ...fields } = petData;
 
     const res = await fetch(`/api/pets/${id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(apiFields),
+      // Send photo_url to DB so it syncs across devices
+      body: JSON.stringify({ ...fields, ...(photoDataUrl !== undefined ? { photo_url: photoDataUrl } : {}) }),
     });
     if (!res.ok) {
       const text = await res.text().catch(() => '');
@@ -299,22 +415,15 @@ export function PetProvider({ children }) {
     }
     const updated = await res.json();
 
-    // Save photo to localStorage separately — can throw QuotaExceededError.
+    // Also cache in localStorage for faster first paint on this device
     if (photoDataUrl) {
       try {
-        // Remove old photo first to free space before writing the new one.
         localStorage.removeItem(`pet_photo_${id}`);
         localStorage.setItem(`pet_photo_${id}`, photoDataUrl);
-      } catch (e) {
-        throw new Error('photo:quota');
-      }
+      } catch {}
     }
 
     const uiPet = dbPetToUi(updated);
-    if (photoDataUrl) {
-      uiPet.photo = true;
-      uiPet.photoUrl = photoDataUrl;
-    }
     setPets(prev => prev.map(p => p.id === id ? uiPet : p));
     return uiPet;
   };
@@ -322,29 +431,51 @@ export function PetProvider({ children }) {
   const activePet = pets.find(p => p.id === activePetId) || (pets.length > 0 ? pets[0] : null);
   const pid = activePet?.id;
 
-  // Fetch medications from DB whenever the active pet changes
+  // Fetch all pet data from DB whenever the active pet changes
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (!pid) return;
     let cancelled = false;
     (async () => {
       try {
-        const res = await fetch(`/api/pets/${pid}/medications`);
-        if (!res.ok || cancelled) return;
-        const rows = await res.json();
+        const [medsRes, healthRes, vacRes, finRes] = await Promise.all([
+          fetch(`/api/pets/${pid}/medications`),
+          fetch(`/api/pets/${pid}/health`),
+          fetch(`/api/pets/${pid}/vaccines`),
+          fetch(`/api/pets/${pid}/finances`),
+        ]);
         if (cancelled) return;
-        const meds = rows.map(medFromDb);
-        // Only replace local state when DB actually has data.
-        // An empty DB response means the pet's meds haven't been synced yet —
-        // overwriting would wipe medications that only exist in localStorage.
-        if (meds.length > 0) {
-          savePetData(prev => ({
-            ...prev,
-            [pid]: { ...prev[pid], medications: meds },
-          }));
-        }
+
+        const [medsRows, healthRows, vacRows, finRows] = await Promise.all([
+          medsRes.ok  ? medsRes.json()   : [],
+          healthRes.ok ? healthRes.json() : [],
+          vacRes.ok   ? vacRes.json()    : [],
+          finRes.ok   ? finRes.json()    : [],
+        ]);
+        if (cancelled) return;
+
+        const meds        = medsRows.map(medFromDb);
+        const vaccines    = vacRows.map(vaccineFromDb);
+        const finances    = finRows.map(financeFromDb);
+        const healthRecs  = healthRows.filter(r => !['consulta','higiene','documento'].includes(r.type)).map(healthFromDb);
+        const consults    = healthRows.filter(r => r.type === 'consulta').map(healthFromDb);
+        const hygienes    = healthRows.filter(r => r.type === 'higiene').map(healthFromDb);
+        const docs        = healthRows.filter(r => r.type === 'documento').map(healthFromDb);
+
+        savePetData(prev => {
+          const cur = prev[pid] || {};
+          const patch = {};
+          if (meds.length     > 0) patch.medications   = meds;
+          if (vaccines.length > 0) patch.vaccines       = vaccines;
+          if (finances.length > 0) patch.expenses       = finances;
+          if (healthRecs.length > 0) patch.healthRecords = healthRecs;
+          if (consults.length > 0)   patch.consultations = consults;
+          if (hygienes.length > 0)   patch.hygieneRecords = hygienes;
+          if (docs.length     > 0)   patch.documents     = docs;
+          return { ...prev, [pid]: { ...cur, ...patch } };
+        });
       } catch (e) {
-        console.warn('Falha ao carregar medicamentos:', e.message);
+        console.warn('Falha ao sincronizar dados do pet:', e.message);
       }
     })();
     return () => { cancelled = true; };
@@ -479,15 +610,44 @@ export function PetProvider({ children }) {
   const vaccines       = getList('vaccines');
   const addVaccine     = (vac) => {
     const saved = addToList('vaccines', vac);
-    if (saved) {
+    if (saved && pid) {
+      fetch(`/api/pets/${pid}/vaccines`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(vaccineToDb(vac)),
+      }).then(r => r.ok ? r.json() : null).then(row => {
+        if (row?.id) updateItem('vaccines', saved.id, { id: row.id, _fromDb: true });
+      }).catch(() => {});
       pushVaccineEvent(saved, activePet?.name).then(r => {
         if (r?.ok && r.event?.id) updateItem('vaccines', saved.id, { gcalEventId: r.event.id });
       }).catch(() => {});
     }
     return saved;
   };
+  const deleteVaccine = (id) => {
+    removeFromList('vaccines', id);
+    if (pid) fetch(`/api/pets/${pid}/vaccines?recordId=${id}`, { method: 'DELETE' }).catch(() => {});
+  };
+
   const expenses       = getList('expenses');
-  const addExpense     = (exp) => addToList('expenses', exp);
+  const addExpense     = (exp) => {
+    const saved = addToList('expenses', exp);
+    if (saved && pid) {
+      fetch(`/api/pets/${pid}/finances`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(financeToDb(exp)),
+      }).then(r => r.ok ? r.json() : null).then(row => {
+        if (row?.id) updateItem('expenses', saved.id, { id: row.id, _fromDb: true });
+      }).catch(() => {});
+    }
+    return saved;
+  };
+  const deleteExpense = (id) => {
+    removeFromList('expenses', id);
+    if (pid) fetch(`/api/pets/${pid}/finances?recordId=${id}`, { method: 'DELETE' }).catch(() => {});
+  };
+
   const addExpenseForPet = (petId, exp) => {
     if (!petId) return;
     const newItem = { ...exp, id: String(Date.now()) + Math.random().toString(36).slice(2,6), createdAt: new Date().toISOString() };
@@ -495,18 +655,36 @@ export function PetProvider({ children }) {
       ...prev,
       [petId]: { ...prev[petId], expenses: [newItem, ...(prev[petId]?.expenses || [])] },
     }));
+    fetch(`/api/pets/${petId}/finances`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(financeToDb(exp)),
+    }).catch(() => {});
     return newItem;
   };
+
   const consultations  = getList('consultations');
   const addConsultation = (con) => {
     const saved = addToList('consultations', con);
-    if (saved) {
+    if (saved && pid) {
+      fetch(`/api/pets/${pid}/health`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(healthToDb(con, 'consulta')),
+      }).then(r => r.ok ? r.json() : null).then(row => {
+        if (row?.id) updateItem('consultations', saved.id, { id: row.id, _fromDb: true });
+      }).catch(() => {});
       pushConsultationEvent(saved, activePet?.name).then(r => {
         if (r?.ok && r.event?.id) updateItem('consultations', saved.id, { gcalEventId: r.event.id });
       }).catch(() => {});
     }
     return saved;
   };
+  const deleteConsultation = (id) => {
+    removeFromList('consultations', id);
+    if (pid) fetch(`/api/pets/${pid}/health?recordId=${id}`, { method: 'DELETE' }).catch(() => {});
+  };
+
   const hygieneRecords = getList('hygieneRecords');
   const addHygieneRecord = (rec) => {
     if (!pid) return;
@@ -527,12 +705,75 @@ export function PetProvider({ children }) {
       if (expense) nextPet.expenses = [expense, ...(current.expenses || [])];
       return { ...prev, [pid]: nextPet };
     });
+    // Sync hygiene record to DB
+    fetch(`/api/pets/${pid}/health`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(healthToDb(rec, 'higiene')),
+    }).catch(() => {});
+    // Sync linked expense to DB
+    if (expense) {
+      fetch(`/api/pets/${pid}/finances`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(financeToDb(expense)),
+      }).catch(() => {});
+    }
     return newRec;
   };
+  const deleteHygieneRecord = (id) => {
+    removeFromList('hygieneRecords', id);
+    if (pid) fetch(`/api/pets/${pid}/health?recordId=${id}`, { method: 'DELETE' }).catch(() => {});
+  };
+
   const healthRecords  = getList('healthRecords');
-  const addHealthRecord = (rec) => addToList('healthRecords', rec);
+  const addHealthRecord = (rec) => {
+    const saved = addToList('healthRecords', rec);
+    if (saved && pid) {
+      fetch(`/api/pets/${pid}/health`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(healthToDb(rec, 'saude')),
+      }).then(r => r.ok ? r.json() : null).then(row => {
+        if (row?.id) updateItem('healthRecords', saved.id, { id: row.id, _fromDb: true });
+      }).catch(() => {});
+    }
+    return saved;
+  };
+  const deleteHealthRecord = (id) => {
+    removeFromList('healthRecords', id);
+    if (pid) fetch(`/api/pets/${pid}/health?recordId=${id}`, { method: 'DELETE' }).catch(() => {});
+  };
+
+  // Save AI explanation to DB and update local state so the modal never re-calls the API
+  const saveExamExplanation = (recordId, explanation) => {
+    if (!pid || !recordId) return;
+    updateItem('healthRecords', recordId, { aiExplanation: explanation });
+    fetch(`/api/pets/${pid}/health?recordId=${recordId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ai_explanation: explanation }),
+    }).catch(() => {});
+  };
+
   const documents      = getList('documents');
-  const addDocument    = (doc) => addToList('documents', doc);
+  const addDocument    = (doc) => {
+    const saved = addToList('documents', doc);
+    if (saved && pid) {
+      fetch(`/api/pets/${pid}/health`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(healthToDb(doc, 'documento')),
+      }).then(r => r.ok ? r.json() : null).then(row => {
+        if (row?.id) updateItem('documents', saved.id, { id: row.id, _fromDb: true });
+      }).catch(() => {});
+    }
+    return saved;
+  };
+  const deleteDocument = (id) => {
+    removeFromList('documents', id);
+    if (pid) fetch(`/api/pets/${pid}/health?recordId=${id}`, { method: 'DELETE' }).catch(() => {});
+  };
   const feedbacks      = getList('feedbacks');
   const addFeedback    = (fb) => addToList('feedbacks', fb);
   const feedingConfig  = pid ? (petData[pid]?.feedingConfig || null) : null;
@@ -545,12 +786,12 @@ export function PetProvider({ children }) {
       activePet, setActivePetId, PETS: pets, userId, loading,
       addPet, updatePet, deletePet,
       medications, addMedication, updateMedication, deleteMedication,
-      vaccines, addVaccine,
-      expenses, addExpense, addExpenseForPet,
-      consultations, addConsultation,
-      hygieneRecords, addHygieneRecord,
-      healthRecords, addHealthRecord,
-      documents, addDocument,
+      vaccines, addVaccine, deleteVaccine,
+      expenses, addExpense, deleteExpense, addExpenseForPet,
+      consultations, addConsultation, deleteConsultation,
+      hygieneRecords, addHygieneRecord, deleteHygieneRecord,
+      healthRecords, addHealthRecord, deleteHealthRecord, saveExamExplanation,
+      documents, addDocument, deleteDocument,
       feedbacks, addFeedback,
       feedingConfig, setFeedingConfig,
       todayTasks, setTodayTasks,

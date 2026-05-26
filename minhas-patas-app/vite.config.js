@@ -8,11 +8,14 @@ import { storybookTest } from '@storybook/addon-vitest/vitest-plugin';
 import { playwright } from '@vitest/browser-playwright';
 const dirname = typeof __dirname !== 'undefined' ? __dirname : path.dirname(fileURLToPath(import.meta.url));
 
+// Storybook sets this env var; skip PWA plugin to avoid the workbox file-size error
+const isStorybook = process.env.STORYBOOK === 'true' || process.env.npm_lifecycle_script?.includes('storybook');
+
 // More info at: https://storybook.js.org/docs/next/writing-tests/integrations/vitest-addon
 export default defineConfig({
   plugins: [
     react(),
-    VitePWA({
+    ...(!isStorybook ? [VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'icon.svg', 'apple-touch-icon-180x180.png'],
       manifest: {
@@ -42,7 +45,7 @@ export default defineConfig({
           },
         ],
       },
-    }),
+    })] : []),
   ],
   test: {
     projects: [{

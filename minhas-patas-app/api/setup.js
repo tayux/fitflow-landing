@@ -105,6 +105,9 @@ export default async function handler(req, res) {
         created_at TIMESTAMPTZ DEFAULT NOW()
       )
     `;
+    // Migrations — safe to run on every setup call
+    await sql`ALTER TABLE health_records ADD COLUMN IF NOT EXISTS ai_explanation JSONB`;
+
     res.status(200).json({ ok: true, message: 'Schema criado com sucesso' });
   } catch (err) {
     console.error(err);
